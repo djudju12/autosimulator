@@ -1,0 +1,19 @@
+{
+   "states": [
+      "q0",
+      "q1",
+      "q2",
+      "q3",
+      "q4"
+   ],
+   "initialState": "q0",
+   "finalStates": [
+      "q7",
+      "q2"
+   ],
+   "alfabet": [
+
+   ],
+   "transitions": [
+   ]
+}

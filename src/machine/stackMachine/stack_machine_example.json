@@ -1,0 +1,55 @@
+{
+   "type": "stack_machine",
+   "states": [
+      "q0",
+      "q1",
+      "qf"
+   ],
+   "initialState": "q0",
+   "finalState": [
+      "qf"
+   ],
+   "alfabet": [
+      "a",
+      "b"
+   ],
+
+   "transitions": {
+      "q0": [
+         {
+            "symbol": "a",
+            "readA": "",
+            "writeA": "b",
+            "readB": "",
+            "writeB": "",
+            "resultState": "q0"
+         },
+         {
+            "symbol": "b",
+            "readA": "B",
+            "writeA": "",
+            "readB": "",
+            "writeB": "",
+            "resultState": "q1"
+         }
+      ],
+      "q1": [
+         {
+            "symbol": "b",
+            "readA": "B",
+            "writeA": "",
+            "readB": "",
+            "writeB": "",
+            "resultState": "q1"
+         },
+         {
+            "symbol": "?",
+            "readA": "?",
+            "writeA": "",
+            "readB": "?",
+            "writeB": "",
+            "resultState": "qf"
+         }
+      ]
+   }
+}
