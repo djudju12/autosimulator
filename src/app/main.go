@@ -9,11 +9,10 @@ import (
 
 func main() {
 	m := reader.ReadStackMachine("/home/jonathan/programacao/autosimulator/src/machine/stackMachine/stack_machine_example.json")
-	// fmt.Printf("%t", m.Transitions["q5"] == nil)
 	input := []string{"a", "a", "b", "b"}
 	fmt.Printf("%t\n", m.Execute(input))
-
 	// inputs := reader.ReadInputs("/home/jonathan/programacao/autosimulator/src/reader/fita_example.json")
+
 	// for i, in := range inputs {
 	// 	fmt.Printf("%d: ", i)
 	// 	check(m, in.Fita, in.ExpectedResult)

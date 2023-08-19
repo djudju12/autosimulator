@@ -2,6 +2,7 @@ package stackMachine
 
 import (
 	"autosimulator/src/stack"
+	"errors"
 	"fmt"
 )
 
@@ -67,7 +68,7 @@ func (t *Transition) execute(m *Machine) bool {
 	b := &m._stackB
 
 	check := func(s *stack.Stack, read string, write string) bool {
-		if read != "" {
+		if read != "&" {
 			if s.IsEmpty() {
 				return false
 			}
@@ -76,7 +77,7 @@ func (t *Transition) execute(m *Machine) bool {
 				return false
 			}
 		}
-		if write != "" {
+		if write != "&" {
 			s.Push(write)
 		}
 
@@ -86,4 +87,65 @@ func (t *Transition) execute(m *Machine) bool {
 	m._currentState = t.ResultState
 	// checa os dois stacks
 	return check(a, t.ReadA, t.WriteA) || check(b, t.ReadB, t.WriteB)
+}
+
+func (t *Transition) UnmarshalJSON(data []byte) error {
+	parsed, err := parse(string(data))
+	if err != nil {
+		fmt.Print(err.Error())
+		panic(1)
+	}
+
+	*t = Transition{
+		Symbol:      parsed[0],
+		ReadA:       parsed[1],
+		WriteA:      parsed[2],
+		ReadB:       parsed[3],
+		WriteB:      parsed[4],
+		ResultState: parsed[5],
+	}
+
+	return nil
+}
+
+// append com validacao para palavra vazia
+func appendWithVoidWord(slice []string, symbol string) []string {
+	if symbol == "" {
+		slice = append(slice, "&")
+	} else {
+		slice = append(slice, symbol)
+	}
+	return slice
+}
+
+func parse(s string) ([]string, error) {
+	// TODO: proper handling
+
+	// retira os double quotes do json
+	s = s[1 : len(s)-1]
+
+	if s[0] != '(' || s[len(s)-1] != ')' {
+		return []string{}, errors.New("transicao deve começar com '(' e terminar com ')'")
+	}
+
+	i, j := 2, 1
+	result := []string{}
+	for {
+		// remove espaços à esquerda
+		if s[j] == ' ' {
+			j++
+		}
+
+		switch currentChar := s[i]; currentChar {
+		case ')':
+			result = appendWithVoidWord(result, s[j:i])
+			return result, nil
+		case ',':
+			result = appendWithVoidWord(result, s[j:i])
+			i++
+			j = i
+		default:
+			i++
+		}
+	}
 }

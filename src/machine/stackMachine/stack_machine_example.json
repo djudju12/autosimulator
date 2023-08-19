@@ -6,50 +6,21 @@
       "qf"
    ],
    "initialState": "q0",
-   "finalState": [
+   "finalStates": [
       "qf"
    ],
    "alfabet": [
       "a",
       "b"
    ],
-
    "transitions": {
       "q0": [
-         {
-            "symbol": "a",
-            "readA": "",
-            "writeA": "b",
-            "readB": "",
-            "writeB": "",
-            "resultState": "q0"
-         },
-         {
-            "symbol": "b",
-            "readA": "B",
-            "writeA": "",
-            "readB": "",
-            "writeB": "",
-            "resultState": "q1"
-         }
+         "(a, &, b, &, &, q0)",
+         "(b, b, &, &, &, q1)"
       ],
       "q1": [
-         {
-            "symbol": "b",
-            "readA": "B",
-            "writeA": "",
-            "readB": "",
-            "writeB": "",
-            "resultState": "q1"
-         },
-         {
-            "symbol": "?",
-            "readA": "?",
-            "writeA": "",
-            "readB": "?",
-            "writeB": "",
-            "resultState": "qf"
-         }
+         "(b, b, &, &, &, q1)",
+         "(?, ?, &, ?, &, qf)"
       ]
    }
 }
