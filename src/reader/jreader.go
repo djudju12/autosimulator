@@ -1,7 +1,7 @@
 package reader
 
 import (
-	"autosimulator/src/machine"
+	"autosimulator/src/machine/afdMachine"
 	"autosimulator/src/machine/stackMachine"
 	"encoding/json"
 	"fmt"
@@ -11,8 +11,8 @@ import (
 	"strings"
 )
 
-func ReadMachine(path string) *machine.Machine {
-	m := machine.New()
+func ReadMachine(path string) *afdMachine.Machine {
+	m := afdMachine.New()
 	content := readFileContent(path)
 	err := json.Unmarshal(content, &m)
 	if err != nil {
@@ -31,15 +31,15 @@ func ReadStackMachine(path string) *stackMachine.Machine {
 	return m
 }
 
-func ReadInputs(path string) []machine.Input {
-	var in []machine.Input
-	content := readFileContent(path)
-	err := json.Unmarshal(content, &in)
-	if err != nil {
-		unmarshalError(path, err)
-	}
-	return in
-}
+// func ReadInputs(path string) []afdMachine.Input {
+// 	var in []afdMachine.Input
+// 	content := readFileContent(path)
+// 	err := json.Unmarshal(content, &in)
+// 	if err != nil {
+// 		unmarshalError(path, err)
+// 	}
+// 	return in
+// }
 
 func unmarshalError(path string, err error) {
 	fmt.Printf("Erro ao tentar fazer o unmarshal do arquivo %s. Error: %s\n", path, err)

@@ -2,20 +2,11 @@ package stackMachine
 
 import (
 	"autosimulator/src/stack"
-	"errors"
+	"autosimulator/src/utils"
 	"fmt"
 )
 
 type (
-	Transition struct {
-		Symbol      string `json:"symbol"`
-		ReadA       string `json:"readA"`
-		WriteA      string `json:"writeA"`
-		ReadB       string `json:"readB"`
-		WriteB      string `json:"writeB"`
-		ResultState string `json:"resultState"`
-	}
-
 	Machine struct {
 		States       []string                `json:"states"`
 		InitialState string                  `json:"initialState"`
@@ -27,6 +18,15 @@ type (
 		_stackB       stack.Stack
 		_currentState string
 	}
+
+	Transition struct {
+		Symbol      string `json:"symbol"`
+		ReadA       string `json:"readA"`
+		WriteA      string `json:"writeA"`
+		ReadB       string `json:"readB"`
+		WriteB      string `json:"writeB"`
+		ResultState string `json:"resultState"`
+	}
 )
 
 func New() *Machine {
@@ -35,38 +35,36 @@ func New() *Machine {
 	return &Machine{_stackA: *a, _stackB: *b}
 }
 
-func (m *Machine) Execute(fita []string) bool {
+func (m *Machine) Init() {
 	m._currentState = m.InitialState
-	fita = append(fita, "?")
-	for _, s := range fita {
-		if !m.nextTransition(s) {
-			return false
-		}
-	}
-	fmt.Printf("last state %s\n", m._currentState)
-	return true
 }
 
-func (m *Machine) nextTransition(symbol string) bool {
+// TODO: default impl?
+func (m *Machine) IsLastState() bool {
+	return utils.Contains(m.FinalStates, m._currentState)
+}
+
+func (m *Machine) NextTransition(symbol string) (Transition, bool) {
 	possibleTransitions := m.Transitions[m._currentState]
 	if possibleTransitions == nil {
-		return false
+		return Transition{}, false
 	}
 
 	for _, t := range possibleTransitions {
 		if t.Symbol == symbol {
-			return t.execute(m)
+			return t, true
 		}
 	}
 
-	return true
+	return Transition{}, false
 }
 
-func (t *Transition) execute(m *Machine) bool {
+func (t *Transition) MakeTransition(m Machine) bool {
 	// TODO: devo fazer sempre readA->writeA->readB->writeB?
 	a := &m._stackA
 	b := &m._stackB
 
+	// TODO tenho que checar se esta no ultimo estado, não?
 	check := func(s *stack.Stack, read string, write string) bool {
 		if read != "&" {
 			if s.IsEmpty() {
@@ -90,7 +88,7 @@ func (t *Transition) execute(m *Machine) bool {
 }
 
 func (t *Transition) UnmarshalJSON(data []byte) error {
-	parsed, err := parse(string(data))
+	parsed, err := utils.ParseTransition((string(data)))
 	if err != nil {
 		fmt.Print(err.Error())
 		panic(1)
@@ -106,46 +104,4 @@ func (t *Transition) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-}
-
-// append com validacao para palavra vazia
-func appendWithVoidWord(slice []string, symbol string) []string {
-	if symbol == "" {
-		slice = append(slice, "&")
-	} else {
-		slice = append(slice, symbol)
-	}
-	return slice
-}
-
-func parse(s string) ([]string, error) {
-	// TODO: proper handling
-
-	// retira os double quotes do json
-	s = s[1 : len(s)-1]
-
-	if s[0] != '(' || s[len(s)-1] != ')' {
-		return []string{}, errors.New("transicao deve começar com '(' e terminar com ')'")
-	}
-
-	i, j := 2, 1
-	result := []string{}
-	for {
-		// remove espaços à esquerda
-		if s[j] == ' ' {
-			j++
-		}
-
-		switch currentChar := s[i]; currentChar {
-		case ')':
-			result = appendWithVoidWord(result, s[j:i])
-			return result, nil
-		case ',':
-			result = appendWithVoidWord(result, s[j:i])
-			i++
-			j = i
-		default:
-			i++
-		}
-	}
 }

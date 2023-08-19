@@ -1,68 +1,52 @@
 package machine
 
-type Input struct {
-	Fita           []string
-	ExpectedResult bool
-}
+import "fmt"
 
-type Transition struct {
-	State       string `json:"state"`
-	Symbol      string `json:"symbol"`
-	ResultState string `json:"resultState"`
-}
+const TAIL_FITA = "?"
+const PALAVRA_VAZIA = "&"
 
-type Machine struct {
-	States       []string     `json:"states"`
-	InitialState string       `json:"initialState"`
-	FinalStates  []string     `json:"finalStates"`
-	Alfabet      []string     `json:"alfabet"`
-	Transitions  []Transition `json:"transitions"`
+type (
+	Machine interface {
+		Init()
+		IsLastState() bool
+		PossibleTransitions() []Transition
+	}
 
-	_currentState string
-}
+	Transition interface {
+		GetSymbol() string
+		MakeTransition(machine Machine) bool
+	}
+)
 
-type MachineOperations interface {
-	New() *Machine
-	Execute(fita []string) bool
-}
-
-func New() *Machine {
-	return &Machine{}
-}
-
-func (m *Machine) Execute(fita []string) bool {
-
-	m._currentState = m.InitialState
+func Execute(m Machine, fita []string) bool {
+	m.Init()
+	fita = append(fita, TAIL_FITA)
 	for _, s := range fita {
-		if !m.nextTransition(s) {
+		if s == TAIL_FITA {
+			break
+		}
+
+		if ok := NextTransition(m, s); !ok {
+			fmt.Printf("entrada: %s rejeitada", fita)
 			return false
 		}
 	}
 
-	return m.isInLastState()
+	return m.IsLastState()
 }
 
-func (m *Machine) isInLastState() bool {
-	return contains(m._currentState, m.FinalStates)
-}
+func NextTransition(m Machine, symbol string) bool {
+	possibleTransitions := m.PossibleTransitions()
+	if possibleTransitions == nil {
+		return false
+	}
 
-func (m *Machine) nextTransition(symbol string) bool {
-	// TODO: usar um map para procurar a transição
-	for _, transition := range m.Transitions {
-		if transition.State == m._currentState && transition.Symbol == symbol {
-			m._currentState = transition.ResultState
-			return true
+	for _, t := range possibleTransitions {
+		if t.GetSymbol() == symbol {
+			return t.MakeTransition(m)
 		}
 	}
 
 	return false
-}
 
-func contains(state string, states []string) bool {
-	for _, s := range states {
-		if state == s {
-			return true
-		}
-	}
-	return false
 }
