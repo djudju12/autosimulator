@@ -3,12 +3,11 @@ package main
 import (
 	"autosimulator/src/machine"
 	"autosimulator/src/reader"
-	"fmt"
 )
 
 func main() {
 	m := reader.ReadMachine("/home/jonathan/programacao/autosimulator/src/machine/afdMachine/machine_example.json")
-	fmt.Printf("%+v", m)
+	// fmt.Printf("%+v", m)
 	input := []string{"a", "a", "b"}
 
 	machine.Execute(m, input)

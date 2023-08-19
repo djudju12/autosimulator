@@ -43,8 +43,8 @@ func (m *Machine) PossibleTransitions() []machine.Transition {
 	// memory que concrete types. Segundo stack overflow o
 	// compilador nao faz automaticamente por causa da complexidade
 	// O(n)
-	for _, v := range transitions {
-		result = append(result, &v)
+	for i := range transitions {
+		result[i] = &transitions[i]
 	}
 
 	return result
