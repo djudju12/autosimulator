@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// TODO: Composition neles!
 type (
 	Machine struct {
 		States       []string                `json:"states"`
