@@ -1,95 +1,74 @@
 package graphics
 
 import (
-	"fmt"
-	"os"
-
+	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
 
 type (
-	position struct {
-		x, y int
-	}
-
-	Node struct {
-		position
-		ringRect    *sdl.Rect
-		radius      int
-		innerRadius int
-		state       string
-		color       sdl.Color
-		textTexture *sdl.Texture
-		textRect    *sdl.Rect
+	graphicalState struct {
+		*sdl.Rect
+		state string
+		color sdl.Color
 	}
 )
 
-var BLACK = sdl.Color{R: 0, G: 0, B: 0, A: 255}
-var WITHE = sdl.Color{R: 255, G: 255, B: 255, A: 255}
+const RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/ring.png"
 
-func NewNode() *Node {
-	return &Node{
-		position:    position{0, 0},
-		radius:      0,
-		innerRadius: 0,
-		state:       "",
-		color:       BLACK,
-		textTexture: nil,
-		textRect:    nil,
+var (
+	BLACK = sdl.Color{R: 0, G: 0, B: 0, A: 255}
+	WHITE = sdl.Color{R: 255, G: 255, B: 255, A: 255}
+)
+
+func newState(rect *sdl.Rect, state string, colour sdl.Color) *graphicalState {
+	return &graphicalState{
+		Rect:  rect,
+		state: state,
+		color: colour,
 	}
 }
 
-func (n *Node) draw(pixels []byte, renderer *sdl.Renderer, font *ttf.Font) {
-	// n.drawRing(pixels)
-	// n.ringRect = &sdl.Rect{X: int32(n.x), Y: int32(n.y), W: int32(n.radius) * 2, H: int32(n.radius) * 2}
-	// n.ringTexture =
-
-	err := n.drawText(renderer, font)
-	if err != nil {
-		fmt.Printf("Erro ao desenhar o texto do anel: %v", err)
-		os.Exit(1)
-	}
+func (n *graphicalState) draw(renderer *sdl.Renderer, font *ttf.Font) {
+	n.drawRing(renderer)
+	n.drawText(renderer, font)
 }
 
-// func (n *node) drawRing(pixels []byte) {
-// 	// Draw the ring
-// 	for y := -n.radius; y < n.radius; y++ {
-// 		for x := -n.radius; x < n.radius; x++ {
-// 			distanceSquared := x*x + y*y
-// 			if distanceSquared >= (n.innerRadius*n.innerRadius) && distanceSquared < (n.radius*n.radius) {
-// 				setPixel(position{int(n.x) + x, int(n.y) + y}, n.color, pixels)
-// 			}
-// 		}
-// 	}
-// }
-
-func (n *Node) drawText(renderer *sdl.Renderer, font *ttf.Font) error {
-	w, h := int32(n.radius), int32(n.radius)
-	textRec := &sdl.Rect{X: int32(n.x) - (w / 2), Y: int32(n.y) - (h / 2), W: w, H: h}
-
-	textSurface, err := font.RenderUTF8Solid(n.state, BLACK)
+func (n *graphicalState) drawRing(renderer *sdl.Renderer) {
+	// TODO: GLOBAL
+	imgSurface, err := img.Load(RING_PATH)
 	if err != nil {
-		return err
-	}
-	defer textSurface.Free()
-
-	textTexture, err := renderer.CreateTextureFromSurface(textSurface)
-	if err != nil {
-		return err
+		panic(err)
 	}
 
-	n.textTexture = textTexture
-	n.textRect = textRec
-	return nil
+	texture, err := renderer.CreateTextureFromSurface(imgSurface)
+	if err != nil {
+		panic(err)
+	}
+
+	renderer.Copy(texture, nil, n.Rect)
 }
 
-func setPixel(pos position, c sdl.Color, pixels []byte) {
-	index := (pos.y*WITDH + pos.x) * 4
-	if index < len(pixels)-4 && index >= 0 {
-		pixels[index] = c.R
-		pixels[index+1] = c.G
-		pixels[index+2] = c.B
-		pixels[index+3] = c.A
+// TODO: Caching fotns
+func (n *graphicalState) drawText(renderer *sdl.Renderer, font *ttf.Font) {
+	var fontRating int32 = 2
+	surface, err := font.RenderUTF8Solid(n.state, n.color)
+	if err != nil {
+		panic(err)
 	}
+	defer surface.Free()
+
+	texture, err := renderer.CreateTextureFromSurface(surface)
+	if err != nil {
+		panic(err)
+	}
+
+	textRect := &sdl.Rect{
+		X: n.X + n.W/(fontRating*2),
+		Y: n.Y + n.H/(fontRating*2),
+		W: n.W / fontRating,
+		H: n.H / fontRating,
+	}
+
+	renderer.Copy(texture, nil, textRect)
 }

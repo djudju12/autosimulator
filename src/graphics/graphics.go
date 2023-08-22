@@ -2,7 +2,6 @@ package graphics
 
 import (
 	"fmt"
-	"unsafe"
 
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -13,7 +12,6 @@ const WITDH, HEIGTH = 800, 600
 var (
 	window   *sdl.Window
 	renderer *sdl.Renderer
-	texture  *sdl.Texture
 	font     *ttf.Font
 )
 
@@ -34,11 +32,6 @@ func init() {
 		panic(1)
 	}
 
-	texture, err = renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, WITDH, HEIGTH)
-	if err != nil {
-		panic(1)
-	}
-
 	err = ttf.Init()
 	if err != nil {
 		panic(err)
@@ -48,41 +41,33 @@ func init() {
 	if err != nil {
 		panic(1)
 	}
+
+}
+
+func shutDown() {
+	sdl.Quit()
+	ttf.Quit()
+	window.Destroy()
+	renderer.Destroy()
+	font.Close()
 }
 
 func Run() {
-	pixels := make([]byte, WITDH*HEIGTH*4)
-	for y := 0; y < HEIGTH; y++ {
-		for x := 0; x < WITDH; x++ {
-			setPixel(position{x: x, y: y}, WITHE, pixels)
-		}
-	}
 
-	nodex1, nodey1 := WITDH/2, HEIGTH/2
-	nodex2, nodey2 := WITDH/4, HEIGTH/4
+	////// States for testing
+	state1 := newState(&sdl.Rect{X: 100, Y: 100, W: 50, H: 50}, "Q0", BLACK)
+	state2 := newState(&sdl.Rect{X: WITDH / 2, Y: HEIGTH / 2, W: 50, H: 50}, "Q1", BLACK)
+	states := []graphicalState{*state1, *state2}
+	////////////////////
 
-	node := NewNode()
-	node2 := NewNode()
-
-	nodes := []*Node{node, node2}
-
-	node.x, node.y = nodex1/2, nodey1/2
-	node.radius = 40
-	node.innerRadius = 35
-	node.state = "Q0"
-	defer node.textTexture.Destroy()
-
-	node2.x, node2.y = nodex2/2, nodey2/2
-	node2.radius = 40
-	node2.innerRadius = 35
-	node2.state = "Q1"
-	defer node2.textTexture.Destroy()
-
-	running := true
+	////// Mouse events
 	mousePos := sdl.Point{X: 0, Y: 0}
 	clickOffset := sdl.Point{X: 0, Y: 0}
-	var selectedNode *Node
+	var selectedState *graphicalState
 	leftMouseButtonDown := false
+	////////////////////
+
+	running := true
 	for running {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch event.(type) {
@@ -93,31 +78,29 @@ func Run() {
 			case *sdl.MouseMotionEvent:
 				mousePos.X, mousePos.Y, _ = sdl.GetMouseState()
 
-				if leftMouseButtonDown && selectedNode != nil {
+				if leftMouseButtonDown && selectedState != nil {
 					fmt.Print("moving..")
-					selectedNode.x = int(mousePos.X - clickOffset.X)
-					selectedNode.y = int(mousePos.Y - clickOffset.Y)
+					selectedState.X = mousePos.X - clickOffset.X
+					selectedState.Y = mousePos.Y - clickOffset.Y
 				}
 
 			case *sdl.MouseButtonEvent:
 				if event.(*sdl.MouseButtonEvent).Button == sdl.BUTTON_LEFT {
 					if leftMouseButtonDown &&
 						event.(*sdl.MouseButtonEvent).Type == sdl.MOUSEBUTTONUP {
-						fmt.Print("up..")
 						leftMouseButtonDown = false
-						selectedNode = nil
+						selectedState = nil
 					}
 
 					if !leftMouseButtonDown &&
 						event.(*sdl.MouseButtonEvent).Type == sdl.MOUSEBUTTONDOWN {
 						leftMouseButtonDown = true
-						fmt.Print("down..")
 
-						for _, node := range nodes {
-							if mousePos.InRect(node.textRect) {
-								selectedNode = node
-								clickOffset.X = mousePos.X - node.textRect.X
-								clickOffset.Y = mousePos.Y - node.textRect.Y
+						for _, state := range states {
+							if mousePos.InRect(state.Rect) {
+								selectedState = &state
+								clickOffset.X = mousePos.X - state.X
+								clickOffset.Y = mousePos.Y - state.Y
 								break
 							}
 						}
@@ -130,27 +113,39 @@ func Run() {
 
 		}
 
-		node.draw(pixels, renderer, font)
-		node2.draw(pixels, renderer, font)
-
-		texture.Update(nil, unsafe.Pointer(&pixels[0]), WITDH*4)
-		renderer.Copy(texture, nil, nil)
-
-		renderer.Copy(node.textTexture, nil, node.textRect)
-		renderer.Copy(node2.textTexture, nil, node2.textRect)
-
+		renderer.SetDrawColor(255, 255, 255, 255)
+		renderer.Clear()
+		state1.draw(renderer, font)
+		state2.draw(renderer, font)
 		renderer.Present()
 
 		sdl.Delay(1000 / 60)
 	}
+
 	defer shutDown()
 }
 
-func shutDown() {
-	sdl.Quit()
-	ttf.Quit()
-	window.Destroy()
-	texture.Destroy()
-	renderer.Destroy()
-	font.Close()
-}
+/////////////////////////////////////////////
+
+// func Run() {
+// 	rect := &sdl.Rect{X: WITDH / 2, Y: HEIGTH / 2, W: 50, H: 50}
+// 	graphicalState := NewNode(rect, "Q0", BLACK)
+
+// 	renderer.SetDrawColor(255, 255, 255, 255)
+// 	renderer.Clear()
+// 	graphicalState.draw(renderer, font)
+// 	renderer.Present()
+// 	sdl.Delay(5000)
+
+// }
+
+// // func drawTransition() {
+// // 	surfaceImg, _ := img.Load()
+// // 	textureImg, _ := renderer.CreateTextureFromSurface(surfaceImg)
+
+// // 	surfaceText, _ := font.RenderUTF8Solid("Q0", BLACK)
+// // 	textureText, _ := renderer.CreateTextureFromSurface(surfaceText)
+
+// // 	renderer.Copy(textureImg, nil, nil)
+// // 	renderer.Copy(textureText, nil, nil)
+// // }
