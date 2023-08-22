@@ -3,6 +3,7 @@ package graphics
 import (
 	"fmt"
 
+	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
@@ -57,7 +58,8 @@ func Run() {
 	////// States for testing
 	state1 := newState(&sdl.Rect{X: 100, Y: 100, W: 50, H: 50}, "Q0", BLACK)
 	state2 := newState(&sdl.Rect{X: WITDH / 2, Y: HEIGTH / 2, W: 50, H: 50}, "Q1", BLACK)
-	states := []graphicalState{*state1, *state2}
+	state1.addNextState(state2)
+	states := []*graphicalState{state1, state2}
 	////////////////////
 
 	////// Mouse events
@@ -98,7 +100,7 @@ func Run() {
 
 						for _, state := range states {
 							if mousePos.InRect(state.Rect) {
-								selectedState = &state
+								selectedState = state
 								clickOffset.X = mousePos.X - state.X
 								clickOffset.Y = mousePos.Y - state.Y
 								break
@@ -117,6 +119,7 @@ func Run() {
 		renderer.Clear()
 		state1.draw(renderer, font)
 		state2.draw(renderer, font)
+		drawLines(renderer, font, states, 2)
 		renderer.Present()
 
 		sdl.Delay(1000 / 60)
@@ -127,25 +130,21 @@ func Run() {
 
 /////////////////////////////////////////////
 
-// func Run() {
-// 	rect := &sdl.Rect{X: WITDH / 2, Y: HEIGTH / 2, W: 50, H: 50}
-// 	graphicalState := NewNode(rect, "Q0", BLACK)
+func Run2() {
+	////// States for testing
+	state1 := newState(&sdl.Rect{X: 100, Y: 100, W: 50, H: 50}, "Q0", BLACK)
+	state2 := newState(&sdl.Rect{X: (WITDH / 2) - 50/2, Y: (HEIGTH / 2) - 50/2, W: 50, H: 50}, "Q1", BLACK)
+	fmt.Println(state2.Center())
+	////////////////////
 
-// 	renderer.SetDrawColor(255, 255, 255, 255)
-// 	renderer.Clear()
-// 	graphicalState.draw(renderer, font)
-// 	renderer.Present()
-// 	sdl.Delay(5000)
-
-// }
-
-// // func drawTransition() {
-// // 	surfaceImg, _ := img.Load()
-// // 	textureImg, _ := renderer.CreateTextureFromSurface(surfaceImg)
-
-// // 	surfaceText, _ := font.RenderUTF8Solid("Q0", BLACK)
-// // 	textureText, _ := renderer.CreateTextureFromSurface(surfaceText)
-
-// // 	renderer.Copy(textureImg, nil, nil)
-// // 	renderer.Copy(textureText, nil, nil)
-// // }
+	renderer.SetDrawColor(255, 255, 255, 255)
+	renderer.Clear()
+	renderer.SetDrawColor(0, 0, 0, 255)
+	state1.draw(renderer, font)
+	state2.draw(renderer, font)
+	gfx.ThickLineColor(renderer, 0, HEIGTH/2, WITDH, HEIGTH/2, 4, BLACK)
+	gfx.ThickLineColor(renderer, WITDH/2, 0, WITDH/2, HEIGTH, 4, BLACK)
+	state1.drawLine(renderer, state2, 2)
+	renderer.Present()
+	sdl.Delay(2000)
+}

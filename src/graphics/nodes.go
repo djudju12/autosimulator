@@ -1,6 +1,7 @@
 package graphics
 
 import (
+	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -9,8 +10,9 @@ import (
 type (
 	graphicalState struct {
 		*sdl.Rect
-		state string
-		color sdl.Color
+		state      string
+		color      sdl.Color
+		nextStates []*graphicalState
 	}
 )
 
@@ -23,9 +25,18 @@ var (
 
 func newState(rect *sdl.Rect, state string, colour sdl.Color) *graphicalState {
 	return &graphicalState{
-		Rect:  rect,
-		state: state,
-		color: colour,
+		Rect:       rect,
+		state:      state,
+		color:      colour,
+		nextStates: []*graphicalState{},
+	}
+}
+
+func drawLines(renderer *sdl.Renderer, font *ttf.Font, states []*graphicalState, thickness int32) {
+	for _, state := range states {
+		for _, nextState := range state.nextStates {
+			state.drawLine(renderer, nextState, 5)
+		}
 	}
 }
 
@@ -71,4 +82,22 @@ func (n *graphicalState) drawText(renderer *sdl.Renderer, font *ttf.Font) {
 	}
 
 	renderer.Copy(texture, nil, textRect)
+}
+
+func (n *graphicalState) Center() sdl.Point {
+	return sdl.Point{
+		X: n.X + n.W/2,
+		Y: n.Y + n.H/2,
+	}
+}
+
+func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState, thickness int32) {
+	fromCenter := from.Center()
+	toCenter := to.Center()
+	start, end := PointsFromRadius(fromCenter, toCenter, float64(from.H/2))
+	gfx.ThickLineColor(renderer, start.X, start.Y, end.X, end.Y, thickness, BLACK)
+}
+
+func (s *graphicalState) addNextState(nextState *graphicalState) {
+	s.nextStates = append(s.nextStates, nextState)
 }
