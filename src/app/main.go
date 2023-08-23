@@ -1,12 +1,11 @@
 package main
 
-import "autosimulator/src/graphics"
-
-type pos struct {
-	x int
-	y int
-}
+import (
+	"autosimulator/src/graphics"
+	"autosimulator/src/reader"
+)
 
 func main() {
-	graphics.Run()
+	m := reader.ReadMachine("/home/jonathan/programacao/autosimulator/src/machine/afdMachine/machine_example.json")
+	graphics.Run(m)
 }

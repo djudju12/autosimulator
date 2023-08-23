@@ -1,18 +1,17 @@
 package stackMachine
 
 import (
+	"autosimulator/src/machine"
 	"autosimulator/src/stack"
 	"autosimulator/src/utils"
 	"fmt"
+	"os"
 )
 
 type (
 	Machine struct {
-		States       []string                `json:"states"`
-		InitialState string                  `json:"initialState"`
-		FinalStates  []string                `json:"finalStates"`
-		Alfabet      []string                `json:"alfabet"`
-		Transitions  map[string][]Transition `json:"transitions"`
+		machine.BaseMachine
+		Transitions map[string][]Transition `json:"transitions"`
 
 		_stackA       stack.Stack
 		_stackB       stack.Stack
@@ -39,30 +38,44 @@ func (m *Machine) Init() {
 	m._currentState = m.InitialState
 }
 
-// TODO: default impl?
 func (m *Machine) IsLastState() bool {
 	return utils.Contains(m.FinalStates, m._currentState)
 }
 
-func (m *Machine) NextTransition(symbol string) (Transition, bool) {
-	possibleTransitions := m.Transitions[m._currentState]
-	if possibleTransitions == nil {
-		return Transition{}, false
-	}
-
-	for _, t := range possibleTransitions {
-		if t.Symbol == symbol {
-			return t, true
-		}
-	}
-
-	return Transition{}, false
+func (m *Machine) GetStates() []string {
+	return m.States
 }
 
-func (t *Transition) MakeTransition(m Machine) bool {
+func (m *Machine) CurrentState() string {
+	return m._currentState
+}
+
+func (m *Machine) GetTransitions(state string) []machine.Transition {
+	transitions := m.Transitions[state]
+	result := make([]machine.Transition, len(transitions))
+
+	// Necessarios pois  interaces possuem diferentes layouts in
+	// memory que concrete types.
+	for i := range transitions {
+		result[i] = &transitions[i]
+	}
+
+	return result
+}
+func (m *Machine) PossibleTransitions() []machine.Transition {
+	return m.GetTransitions(m._currentState)
+}
+
+func (t *Transition) MakeTransition(m machine.Machine) bool {
 	// TODO: devo fazer sempre readA->writeA->readB->writeB?
-	a := &m._stackA
-	b := &m._stackB
+	stackMachine, ok := m.(*Machine)
+	if !ok {
+		fmt.Printf("invalido tipo de maquina: %v\n", m)
+		os.Exit(1)
+	}
+
+	a := &stackMachine._stackA
+	b := &stackMachine._stackB
 
 	// TODO tenho que checar se esta no ultimo estado, não?
 	check := func(s *stack.Stack, read string, write string) bool {
@@ -82,16 +95,29 @@ func (t *Transition) MakeTransition(m Machine) bool {
 		return true
 	}
 
-	m._currentState = t.ResultState
+	stackMachine._currentState = t.ResultState
+
 	// checa os dois stacks
 	return check(a, t.ReadA, t.WriteA) || check(b, t.ReadB, t.WriteB)
+}
+
+func (t *Transition) GetSymbol() string {
+	return t.Symbol
+}
+
+func (t *Transition) GetResultState() string {
+	return t.ResultState
 }
 
 func (t *Transition) UnmarshalJSON(data []byte) error {
 	parsed, err := utils.ParseTransition((string(data)))
 	if err != nil {
-		fmt.Print(err.Error())
-		panic(1)
+		return err
+	}
+
+	if len(parsed) > 6 {
+		err = fmt.Errorf("transição mal formada: %v", parsed)
+		return err
 	}
 
 	*t = Transition{

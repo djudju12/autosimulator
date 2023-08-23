@@ -3,17 +3,13 @@ package afdMachine
 import (
 	"autosimulator/src/machine"
 	"autosimulator/src/utils"
-	"fmt"
+	"errors"
 )
 
-// TODO: Composition neles!
 type (
 	Machine struct {
-		States       []string                `json:"states"`
-		InitialState string                  `json:"initialState"`
-		FinalStates  []string                `json:"finalStates"`
-		Alfabet      []string                `json:"alfabet"`
-		Transitions  map[string][]Transition `json:"transitions"`
+		machine.BaseMachine
+		Transitions map[string][]Transition `json:"transitions"`
 
 		_currentState string
 	}
@@ -32,18 +28,20 @@ func (m *Machine) Init() {
 	m._currentState = m.InitialState
 }
 
+func (m *Machine) CurrentState() string {
+	return m._currentState
+}
+
 func (m *Machine) IsLastState() bool {
 	return utils.Contains(m.FinalStates, m._currentState)
 }
 
-func (m *Machine) PossibleTransitions() []machine.Transition {
-	transitions := m.Transitions[m._currentState]
+func (m *Machine) GetTransitions(state string) []machine.Transition {
+	transitions := m.Transitions[state]
 	result := make([]machine.Transition, len(transitions))
 
-	// Aparentemente interaces possuem diferentes layouts in
-	// memory que concrete types. Segundo stack overflow o
-	// compilador nao faz automaticamente por causa da complexidade
-	// O(n)
+	// Necessarios pois  interaces possuem diferentes layouts in
+	// memory que concrete types.
 	for i := range transitions {
 		result[i] = &transitions[i]
 	}
@@ -51,8 +49,20 @@ func (m *Machine) PossibleTransitions() []machine.Transition {
 	return result
 }
 
+func (m *Machine) PossibleTransitions() []machine.Transition {
+	return m.GetTransitions(m._currentState)
+}
+
+func (m *Machine) GetStates() []string {
+	return m.States
+}
+
 func (t *Transition) GetSymbol() string {
 	return t.Symbol
+}
+
+func (t *Transition) GetResultState() string {
+	return t.ResultState
 }
 
 func (t *Transition) MakeTransition(m machine.Machine) bool {
@@ -65,17 +75,17 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 func (t *Transition) UnmarshalJSON(data []byte) error {
 	parsed, err := utils.ParseTransition((string(data)))
 	if err != nil {
-		fmt.Print(err.Error())
-		panic(1)
+		return err
 	}
 
 	if len(parsed) > 2 {
-		fmt.Print(
+		err = errors.New(
 			`transições de maquinas AFD devem seguir o padrao:
 				"<estadoAtual>":[
 					"(<simbolo>, <proximoEstado>)"
 					],`)
-		panic(1)
+
+		return err
 	}
 
 	*t = Transition{

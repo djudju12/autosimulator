@@ -1,7 +1,7 @@
 package graphics
 
 import (
-	"autosimulator/src/machine/afdMachine"
+	"autosimulator/src/machine"
 	"fmt"
 	"os"
 
@@ -17,11 +17,13 @@ type (
 		state      string
 		color      sdl.Color
 		statesKeys []string
+		isCurrent  bool
 	}
 )
 
 const (
-	RING_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/ring.png"
+	BLACK_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/ring.png"
+	RED_RING_PATH   = "/home/jonathan/programacao/autosimulator/src/graphics/assets/read_ring.png"
 	ARROW_HEAD_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/arrow_head.png"
 
 	// Constantes para desenhar os estados
@@ -42,6 +44,7 @@ func NewState(rect *sdl.Rect, state string, colour sdl.Color, statesKeys []strin
 		state:      state,
 		color:      colour,
 		statesKeys: statesKeys,
+		isCurrent:  false,
 	}
 }
 
@@ -56,19 +59,26 @@ func (s *graphicalState) Center() sdl.Point {
 	}
 }
 
-func (s *graphicalState) Draw(renderer *sdl.Renderer, font *ttf.Font) {
+func (s *graphicalState) Draw(renderer *sdl.Renderer, font *ttf.Font, states map[string]*graphicalState) {
 	s.drawRing(renderer)
 	//TODO: what i gonna do with this fontRating thing that i created?
 	s.drawText(renderer, font, 2)
 
 	if len(s.statesKeys) != 0 {
-		s.drawLines(renderer, font, 2)
+		s.drawLines(renderer, font, states, 2)
 	}
 }
 
 func (s *graphicalState) drawRing(renderer *sdl.Renderer) {
 	// TODO: GLOBAL
-	imgSurface, err := img.Load(RING_PATH)
+	var path string
+	if s.isCurrent {
+		path = RED_RING_PATH
+	} else {
+		path = BLACK_RING_PATH
+	}
+
+	imgSurface, err := img.Load(path)
 	if err != nil {
 		fmt.Printf("Erro ao carregar a imagem: %v\n", err)
 		os.Exit(1)
@@ -113,16 +123,14 @@ func (s *graphicalState) drawText(renderer *sdl.Renderer, font *ttf.Font, fontRa
 	renderer.Copy(texture, nil, textRect)
 }
 
-func (s *graphicalState) drawLines(renderer *sdl.Renderer, font *ttf.Font, thickness int32) {
+func (s *graphicalState) drawLines(renderer *sdl.Renderer, font *ttf.Font, states map[string]*graphicalState, thickness int32) {
 	// Desenha os estados cujo o estado atual aponta
 	for _, next := range s.statesKeys {
-		state := STATES[next]
-		if state == nil {
-			fmt.Printf("erro: estado %s não encontrado", next)
-			os.Exit(1)
+		state := states[next]
+		if state != nil {
+			s.drawLine(renderer, state, thickness)
 		}
 
-		s.drawLine(renderer, state, thickness)
 	}
 }
 
@@ -151,9 +159,9 @@ func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState,
 	}
 }
 
-func machineToStates(machine *afdMachine.Machine) map[string]*graphicalState {
+func machineStates(machine machine.Machine) map[string]*graphicalState {
 	result := make(map[string]*graphicalState)
-	for i, state := range machine.States {
+	for i, state := range machine.GetStates() {
 		rect := &sdl.Rect{
 			X: X_FIRST,
 			Y: Y_FIRST + int32(i*HEIGTH_REC),
@@ -162,8 +170,8 @@ func machineToStates(machine *afdMachine.Machine) map[string]*graphicalState {
 		}
 
 		statesKeys := make([]string, 0)
-		for _, transition := range machine.Transitions[state] {
-			statesKeys = append(statesKeys, transition.ResultState)
+		for _, transition := range machine.GetTransitions(state) {
+			statesKeys = append(statesKeys, transition.GetResultState())
 		}
 
 		result[state] = NewState(rect, state, BLACK, statesKeys)
