@@ -6,47 +6,52 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
-type VectorInt struct {
+type Vector struct {
 	X, Y float64
 }
 
-func PointsFromRadius(p1, p2 sdl.Point, r1 float64) (*sdl.Point, *sdl.Point) {
-	// u = v / ||v|| (normalization)
+func LinePoints(p1, p2 sdl.Point, distanceFromP1, distanceFromP2 float64) (*sdl.Point, *sdl.Point) {
+	// TODO: Test if this convrsion is necessary
 	vec1 := FromSdlPoint(p1)
 	vec2 := FromSdlPoint(p2)
-	u := &VectorInt{X: vec2.X - vec1.X, Y: vec2.Y - vec1.Y}
+
+	// u = v / ||v|| (normalization)
+	u := &Vector{X: vec2.X - vec1.X, Y: vec2.Y - vec1.Y}
 	u.Normalize()
+
 	// v + d*u
-	distanceU := MultiplyByScalar(u, r1)
-	return Add(vec1, distanceU).ToSdlPoint(), Sub(vec2, distanceU).ToSdlPoint()
+	p1U := MultiplyByScalar(u, distanceFromP1)
+	p2U := MultiplyByScalar(u, distanceFromP2)
+	return Add(vec1, *p1U).ToSdlPoint(), Sub(vec2, *p2U).ToSdlPoint()
 }
 
-// TODO: Mudar!
-func (v *VectorInt) Length() float64 {
+// For the simplicity of the code, we will use sqrt()
+func (v *Vector) Length() float64 {
 	return math.Sqrt(v.X*v.X + v.Y*v.Y)
 }
-func (v *VectorInt) Normalize() {
-	length := v.Length()
-	v.X = v.X / length
-	v.Y = v.Y / length
+
+func MultiplyByScalar(v *Vector, scalar float64) *Vector {
+	return &Vector{X: v.X * scalar, Y: v.Y * scalar}
 }
 
-func MultiplyByScalar(v *VectorInt, scalar float64) *VectorInt {
-	return &VectorInt{X: v.X * scalar, Y: v.Y * scalar}
+func Sub(vec1, vec2 Vector) *Vector {
+	return &Vector{X: vec1.X - vec2.X, Y: vec1.Y - vec2.Y}
 }
 
-func Sub(vec1, vec2 *VectorInt) *VectorInt {
-	return &VectorInt{X: vec1.X - vec2.X, Y: vec1.Y - vec2.Y}
+func Add(vec1, vec2 Vector) *Vector {
+	return &Vector{X: vec1.X + vec2.X, Y: vec1.Y + vec2.Y}
 }
 
-func Add(vec1, vec2 *VectorInt) *VectorInt {
-	return &VectorInt{X: vec1.X + vec2.X, Y: vec1.Y + vec2.Y}
-}
-
-func (v *VectorInt) ToSdlPoint() *sdl.Point {
+func (v *Vector) ToSdlPoint() *sdl.Point {
 	return &sdl.Point{X: int32(v.X), Y: int32(v.Y)}
 }
 
-func FromSdlPoint(point sdl.Point) *VectorInt {
-	return &VectorInt{X: float64(point.X), Y: float64(point.Y)}
+func FromSdlPoint(point sdl.Point) Vector {
+	return Vector{X: float64(point.X), Y: float64(point.Y)}
+}
+
+func (v *Vector) Normalize() {
+	length := v.Length()
+	v.X = v.X / length
+	v.Y = v.Y / length
 }

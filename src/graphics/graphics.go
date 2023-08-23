@@ -1,65 +1,32 @@
 package graphics
 
 import (
-	"fmt"
+	"autosimulator/src/reader"
 
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
 
-const WITDH, HEIGTH = 800, 600
+const (
+	WITDH, HEIGTH = 800, 600
+)
 
 var (
 	window   *sdl.Window
 	renderer *sdl.Renderer
 	font     *ttf.Font
+	STATES   = make(map[string]*graphicalState)
 )
-
-func init() {
-	err := sdl.Init(sdl.INIT_EVERYTHING)
-	if err != nil {
-		panic(err)
-	}
-
-	window, err = sdl.CreateWindow("test", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		WITDH, HEIGTH, sdl.WINDOW_SHOWN)
-	if err != nil {
-		panic(err)
-	}
-
-	renderer, err = sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
-	if err != nil {
-		panic(1)
-	}
-
-	err = ttf.Init()
-	if err != nil {
-		panic(err)
-	}
-
-	font, err = ttf.OpenFont("/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf", 12)
-	if err != nil {
-		panic(1)
-	}
-
-}
-
-func shutDown() {
-	sdl.Quit()
-	ttf.Quit()
-	window.Destroy()
-	renderer.Destroy()
-	font.Close()
-}
 
 func Run() {
 
 	////// States for testing
-	state1 := newState(&sdl.Rect{X: 100, Y: 100, W: 50, H: 50}, "Q0", BLACK)
-	state2 := newState(&sdl.Rect{X: WITDH / 2, Y: HEIGTH / 2, W: 50, H: 50}, "Q1", BLACK)
-	state1.addNextState(state2)
-	states := []*graphicalState{state1, state2}
+	// state1 := NewState(&sdl.Rect{X: 100, Y: 100, W: 50, H: 50}, "Q0", BLACK)
+	// state2 := NewState(&sdl.Rect{X: WITDH / 2, Y: 100, W: 50, H: 50}, "Q1", BLACK)
+	// state1.AddNextState(state2)
+	machine := reader.ReadMachine("/home/jonathan/programacao/autosimulator/src/machine/afdMachine/machine_example.json")
+	STATES = machineToStates(machine)
 	////////////////////
 
 	////// Mouse events
@@ -67,8 +34,9 @@ func Run() {
 	clickOffset := sdl.Point{X: 0, Y: 0}
 	var selectedState *graphicalState
 	leftMouseButtonDown := false
-	////////////////////
+	//////////////////
 
+	// Mainloop
 	running := true
 	for running {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
@@ -81,7 +49,6 @@ func Run() {
 				mousePos.X, mousePos.Y, _ = sdl.GetMouseState()
 
 				if leftMouseButtonDown && selectedState != nil {
-					fmt.Print("moving..")
 					selectedState.X = mousePos.X - clickOffset.X
 					selectedState.Y = mousePos.Y - clickOffset.Y
 				}
@@ -98,7 +65,7 @@ func Run() {
 						event.(*sdl.MouseButtonEvent).Type == sdl.MOUSEBUTTONDOWN {
 						leftMouseButtonDown = true
 
-						for _, state := range states {
+						for _, state := range STATES {
 							if mousePos.InRect(state.Rect) {
 								selectedState = state
 								clickOffset.X = mousePos.X - state.X
@@ -117,9 +84,13 @@ func Run() {
 
 		renderer.SetDrawColor(255, 255, 255, 255)
 		renderer.Clear()
-		state1.draw(renderer, font)
-		state2.draw(renderer, font)
-		drawLines(renderer, font, states, 2)
+		//
+		// drawExs()
+		//
+
+		for _, state := range STATES {
+			state.Draw(renderer, font)
+		}
 		renderer.Present()
 
 		sdl.Delay(1000 / 60)
@@ -128,23 +99,48 @@ func Run() {
 	defer shutDown()
 }
 
+// Inits / shutdows
+func init() {
+	err := sdl.Init(sdl.INIT_EVERYTHING)
+	if err != nil {
+		panic(err)
+	}
+
+	// TODO: title of the window
+	window, err = sdl.CreateWindow("test", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
+		WITDH, HEIGTH, sdl.WINDOW_SHOWN)
+	if err != nil {
+		panic(err)
+	}
+
+	renderer, err = sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
+	if err != nil {
+		panic(err)
+	}
+
+	err = ttf.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	font, err = ttf.OpenFont("/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf", 12)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
+func shutDown() {
+	sdl.Quit()
+	ttf.Quit()
+	window.Destroy()
+	renderer.Destroy()
+	font.Close()
+}
+
 /////////////////////////////////////////////
 
-func Run2() {
-	////// States for testing
-	state1 := newState(&sdl.Rect{X: 100, Y: 100, W: 50, H: 50}, "Q0", BLACK)
-	state2 := newState(&sdl.Rect{X: (WITDH / 2) - 50/2, Y: (HEIGTH / 2) - 50/2, W: 50, H: 50}, "Q1", BLACK)
-	fmt.Println(state2.Center())
-	////////////////////
-
-	renderer.SetDrawColor(255, 255, 255, 255)
-	renderer.Clear()
-	renderer.SetDrawColor(0, 0, 0, 255)
-	state1.draw(renderer, font)
-	state2.draw(renderer, font)
-	gfx.ThickLineColor(renderer, 0, HEIGTH/2, WITDH, HEIGTH/2, 4, BLACK)
-	gfx.ThickLineColor(renderer, WITDH/2, 0, WITDH/2, HEIGTH, 4, BLACK)
-	state1.drawLine(renderer, state2, 2)
-	renderer.Present()
-	sdl.Delay(2000)
+func drawExs() {
+	gfx.ThickLineColor(renderer, 0, HEIGTH/2, WITDH, HEIGTH/2, 1, BLACK)
+	gfx.ThickLineColor(renderer, WITDH/2, 0, WITDH/2, HEIGTH, 1, BLACK)
 }

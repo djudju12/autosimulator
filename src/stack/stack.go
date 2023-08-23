@@ -48,6 +48,7 @@ func (s *Stack) Push(value interface{}) {
 func (s *Stack) IsEmpty() bool {
 	return s.first == nil
 }
+
 func (s *Stack) Peek() interface{} {
 	return s.first.value
 }
