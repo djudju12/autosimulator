@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -15,7 +16,7 @@ const (
 	WITDH, HEIGTH   = 800, 600
 	TITLE           = "Simulador de Autômato"
 	FONT_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
-	FONT_ZIE        = 12
+	FONT_ZIE        = 24
 	FPS_DEFAULT     = 60
 	FPS_EXECUTING   = 2
 	BLACK_RING      = "BLACK_RING"
@@ -24,24 +25,30 @@ const (
 	RED_RING_PATH   = "/home/jonathan/programacao/autosimulator/src/graphics/assets/red_ring.png"
 	GREEN_RING      = "GREEN_RING"
 	GREEN_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/green_ring.png"
+	FITA_HEAD_PATH  = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita_head.png"
+	FITA_HEAD       = "FITA_HEAD"
+	FITA_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita.png"
+	FITA            = "FITA"
 )
 
 type (
 	environment struct {
-		w        *SDLWindow
+		w        *_SDLWindow
 		dragInfo *drag
 		radio    *machineChannel
 		mousePos *sdl.Point
 		states   map[string]*graphicalState
 	}
 
-	SDLWindow struct {
+	_SDLWindow struct {
 		window       *sdl.Window
 		renderer     *sdl.Renderer
 		font         *ttf.Font
 		cacheWords   map[string]*sdl.Surface
 		cacheSprites map[string]*sdl.Surface
+		ui           []*sdl.Texture
 		terminate    bool
+		redraw       bool
 		fps          uint32
 	}
 
@@ -53,16 +60,13 @@ type (
 
 	machineChannel struct {
 		activeMachine machine.Machine
+		input         []string
 		channel       chan int
 		lastMsg       int
 		inExecution   bool
 		lastState     string
 	}
 )
-
-// var _TESTE = []string{"a", "a", "c", "d", "c", "c"}
-
-var _TESTE = []string{"a", "a", "c", "d", "d", "c"}
 
 func Mainloop(env *environment) {
 	window := env.w
@@ -78,9 +82,20 @@ func Mainloop(env *environment) {
 	defer env.Destroy()
 }
 
-func PopulateEnvironment(window *SDLWindow, activeMachine machine.Machine) *environment {
-	dragInfo := &drag{clickOffset: &sdl.Point{X: 0, Y: 0}, selected: nil, leftMouseDown: false}
-	radio := &machineChannel{channel: make(chan int), lastMsg: machine.STATE_NOT_CHANGE, inExecution: false, activeMachine: activeMachine}
+func PopulateEnvironment(window *_SDLWindow, activeMachine machine.Machine) *environment {
+	dragInfo := &drag{
+		clickOffset:   &sdl.Point{X: 0, Y: 0},
+		selected:      nil,
+		leftMouseDown: false,
+	}
+
+	radio := &machineChannel{
+		channel:       make(chan int),
+		lastMsg:       machine.STATE_NOT_CHANGE,
+		inExecution:   false,
+		activeMachine: activeMachine,
+		input:         []string{machine.TAIL_FITA},
+	}
 
 	checkError := func(err error, name string) {
 		if err != nil {
@@ -88,6 +103,12 @@ func PopulateEnvironment(window *SDLWindow, activeMachine machine.Machine) *envi
 			os.Exit(1)
 		}
 	}
+
+	fita, err := img.Load(FITA_PATH)
+	checkError(err, FITA)
+
+	fitaHead, err := img.Load(FITA_HEAD_PATH)
+	checkError(err, FITA_HEAD_PATH)
 
 	blackRing, err := img.Load(BLACK_RING_PATH)
 	checkError(err, BLACK_RING)
@@ -101,6 +122,8 @@ func PopulateEnvironment(window *SDLWindow, activeMachine machine.Machine) *envi
 	window.cacheSprites[BLACK_RING] = blackRing
 	window.cacheSprites[RED_RING] = redRing
 	window.cacheSprites[GREEN_RING] = greenRing
+	window.cacheSprites[FITA] = fita
+	window.cacheSprites[FITA_HEAD] = fitaHead
 
 	env := &environment{
 		w:        window,
@@ -112,7 +135,7 @@ func PopulateEnvironment(window *SDLWindow, activeMachine machine.Machine) *envi
 	return env
 }
 
-func NewSDLWindow() *SDLWindow {
+func NewSDLWindow() *_SDLWindow {
 	err := sdl.Init(sdl.INIT_EVERYTHING)
 	if err != nil {
 		panic(err)
@@ -142,13 +165,14 @@ func NewSDLWindow() *SDLWindow {
 	cacheSprites := make(map[string]*sdl.Surface)
 	cacheWords := make(map[string]*sdl.Surface)
 
-	return &SDLWindow{window: window,
+	return &_SDLWindow{window: window,
 		renderer:     renderer,
 		font:         font,
 		terminate:    false,
 		fps:          1000 / FPS_DEFAULT,
 		cacheWords:   cacheWords,
 		cacheSprites: cacheSprites,
+		redraw:       true,
 	}
 }
 
@@ -172,6 +196,7 @@ func (env *environment) Destroy() {
 func talk(env *environment) {
 	radio := env.radio
 	if radio.inExecution {
+		env.w.redraw = true
 		radio.lastMsg = <-radio.channel
 	}
 
@@ -242,7 +267,7 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 		if !radio.inExecution {
 			window.Fps(FPS_EXECUTING)
 			radio.inExecution = true
-			go machine.Execute(radio.activeMachine, _TESTE, radio.channel)
+			go machine.Execute(radio.activeMachine, radio.input, radio.channel)
 		}
 
 	case sdl.K_r:
@@ -299,24 +324,127 @@ func handleMouseMotionEvent(env *environment) {
 	if dragInfo.leftMouseDown && dragInfo.selected != nil {
 		dragInfo.selected.X = env.mousePos.X - dragInfo.clickOffset.X
 		dragInfo.selected.Y = env.mousePos.Y - dragInfo.clickOffset.Y
+		env.w.redraw = true
 	}
 }
 
 func draw(env *environment) {
 	window := env.w
-	window.cleanUp()
-	for _, state := range env.states {
-		state.Draw(window, env.states)
+	if env.w.redraw {
+		if len(window.ui) != 0 {
+			free(window.ui)
+		}
+
+		err := window.cleanUp()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		err = drawUi(env)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		err = drawNodes(env)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		env.w.redraw = false
 	}
 
+	// drawAxs(env)
 	window.renderer.Present()
 }
 
-func (w *SDLWindow) cleanUp() {
-	w.renderer.SetDrawColor(255, 255, 255, 255)
-	w.renderer.Clear()
+func drawUi(env *environment) error {
+	var padx, pady int32 = 5, 5
+
+	err := env.w.drawFita(env, 0, padx, pady)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (w *SDLWindow) Fps(amout uint32) {
+func drawNodes(env *environment) error {
+	var err error
+	for _, state := range env.states {
+		err = state.Draw(env.w, env.states)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (w *_SDLWindow) cleanUp() error {
+
+	err := w.renderer.SetDrawColor(255, 255, 255, 255)
+	if err != nil {
+		return err
+	}
+
+	err = w.renderer.Clear()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// utilidade
+func (env *environment) Input(fita []string) {
+	env.radio.input = fita
+}
+
+func (w *_SDLWindow) Fps(amout uint32) {
 	w.fps = 1000 / amout
+}
+
+func (w *_SDLWindow) textSurface(text string, color sdl.Color) (*sdl.Surface, error) {
+	font := w.font
+	words := w.cacheWords
+
+	surface := words[text]
+	var err error
+	if surface == nil {
+		surface, err = font.RenderUTF8Solid(text, color)
+		if err != nil {
+			return nil, err
+		}
+
+		words[text] = surface
+	}
+
+	return surface, err
+}
+
+func Center(rec *sdl.Rect) sdl.Point {
+	return sdl.Point{
+		X: rec.X + rec.W/2,
+		Y: rec.Y + rec.H/2,
+	}
+}
+
+func free(textures []*sdl.Texture) error {
+	var err error
+	for _, t := range textures {
+		err = t.Destroy()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func drawAxs(env *environment) {
+	gfx.ThickLineColor(env.w.renderer, WITDH/2, 0, WITDH/2, HEIGTH, 2, BLACK)
+	gfx.ThickLineColor(env.w.renderer, 0, HEIGTH/2, WITDH, HEIGTH/2, 2, BLACK)
 }

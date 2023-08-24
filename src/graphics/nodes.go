@@ -2,8 +2,7 @@ package graphics
 
 import (
 	"autosimulator/src/machine"
-	"fmt"
-	"os"
+	"errors"
 
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
@@ -45,95 +44,97 @@ func NewState(rect *sdl.Rect, state string, colour sdl.Color, statesKeys []strin
 	}
 }
 
-// func (s *graphicalState) AddNextState(nextState *graphicalState) {
-// 	s.nextStates = append(s.nextStates, *nextState)
-// }
-
 func (s *graphicalState) Center() sdl.Point {
-	return sdl.Point{
-		X: s.X + s.W/2,
-		Y: s.Y + s.H/2,
-	}
+	return Center(s.Rect)
 }
 
-func (s *graphicalState) Draw(w *SDLWindow, states map[string]*graphicalState) {
+func (s *graphicalState) Draw(w *_SDLWindow, states map[string]*graphicalState) error {
 	renderer := w.renderer
 	words := w.cacheWords
 	sprites := w.cacheSprites
 	// fmt.Printf("\n\nwords: %+v\nsprints:%+v\n\n", words, sprites)
 
-	s.drawRing(renderer, sprites)
-	//TODO: what i gonna do with this fontRating thing that i created?
-	s.drawText(renderer, w.font, words)
-
-	if len(s.statesKeys) != 0 {
-		s.drawLines(renderer, w.font, states, 2)
+	ringTexture, err := s.drawRing(renderer, sprites)
+	if err != nil {
+		return err
 	}
+	//TODO: what i gonna do with this fontRating thing that i created?
+	textTexture, err := s.drawText(w, words)
+	if err != nil {
+		return err
+	}
+	if len(s.statesKeys) != 0 {
+		err = s.drawLines(renderer, w.font, states, 2)
+		if err != nil {
+			return err
+		}
+	}
+
+	w.ui = append(w.ui, ringTexture, textTexture)
+	return nil
 }
 
-func (s *graphicalState) drawRing(renderer *sdl.Renderer, sprites map[string]*sdl.Surface) {
+func (s *graphicalState) drawRing(renderer *sdl.Renderer, sprites map[string]*sdl.Surface) (*sdl.Texture, error) {
 	// TODO: GLOBAL
 	imgSurface := sprites[s.spriteName]
-
-	// if s.isCurrent {
-	// 	imgSurface =
-	// } else {
-	// 	imgSurface = sprites["BLACK_RING_PATH"]
-	// }
-
 	texture, err := renderer.CreateTextureFromSurface(imgSurface)
 	if err != nil {
-		fmt.Printf("Erro ao criar a textura da imagem: %v\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 
 	renderer.Copy(texture, nil, s.Rect)
+	return texture, nil
 }
 
-func (s *graphicalState) drawText(renderer *sdl.Renderer, font *ttf.Font, words map[string]*sdl.Surface) {
-	var fontRating int32 = 2
+func (s *graphicalState) drawText(window *_SDLWindow, words map[string]*sdl.Surface) (*sdl.Texture, error) {
+	renderer := window.renderer
+	// var fontRating int32 = 2
 
 	// verifica o cache de words
-	surface := words[s.state]
-	if surface == nil {
-		var err error
-		surface, err = font.RenderUTF8Solid(s.state, s.color)
-		if err != nil {
-			fmt.Printf("Erro ao renderizar a fonte: %v\n", err)
-			os.Exit(1)
-		}
-		words[s.state] = surface
+	surface, err := window.textSurface(s.state, s.color)
+	if err != nil {
+		return nil, err
 	}
 
 	texture, err := renderer.CreateTextureFromSurface(surface)
 	if err != nil {
-		fmt.Printf("Erro ao criar a textura da fonte: %v\n", err)
-		os.Exit(1)
+		return nil, err
+	}
+	_, _, fontW, fontH, err := texture.Query()
+	if err != nil {
+		return nil, err
 	}
 
+	centerS := s.Center()
 	textRect := &sdl.Rect{
-		X: s.X + s.W/(fontRating*2),
-		Y: s.Y + s.H/(fontRating*2),
-		W: s.W / fontRating,
-		H: s.H / fontRating,
+		X: centerS.X - fontW/2,
+		Y: centerS.Y - fontH/2,
+		W: fontW,
+		H: fontH,
 	}
 
 	renderer.Copy(texture, nil, textRect)
+	return texture, nil
 }
 
-func (s *graphicalState) drawLines(renderer *sdl.Renderer, font *ttf.Font, states map[string]*graphicalState, thickness int32) {
+func (s *graphicalState) drawLines(renderer *sdl.Renderer, font *ttf.Font, states map[string]*graphicalState, thickness int32) error {
 	// Desenha os estados cujo o estado atual aponta
+	var err error
 	for _, next := range s.statesKeys {
 		state := states[next]
 		if state != nil {
-			s.drawLine(renderer, state, thickness)
+			err = s.drawLine(renderer, state, thickness)
+			if err != nil {
+				return err
+			}
 		}
-
 	}
+
+	return nil
 }
 
 // Função que desenha uma linah entre dois estados. O estato "To" recebera a bolinha (cardinalidade)!!
-func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState, thickness int32) {
+func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState, thickness int32) error {
 	fromCenter := from.Center()
 	toCenter := to.Center()
 	radius := float64(from.H / 2)
@@ -145,16 +146,16 @@ func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState,
 	// Desenha a linha
 	ok := gfx.ThickLineColor(renderer, start.X, start.Y, end.X, end.Y, thickness, BLACK)
 	if !ok {
-		fmt.Printf("Erro ao renderizar as linhas")
-		os.Exit(1)
+		return errors.New("erro ao renderizar as linhas")
 	}
 
 	// Desenha o marcador de cardinalidade no final da linha
 	ok = gfx.FilledCircleColor(renderer, end.X, end.Y, radiusMiniBall, BLACK)
 	if !ok {
-		fmt.Printf("Erro ao renderizar as mini bolas")
-		os.Exit(1)
+		return errors.New("erro ao renderizar as linhas")
 	}
+
+	return nil
 }
 
 func machineStates(machine machine.Machine) map[string]*graphicalState {
