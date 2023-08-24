@@ -63,6 +63,6 @@ func DebugFita(fita []string, index int) {
 			fmt.Printf("%s ", item)
 		}
 	}
-
 	fmt.Println()
+
 }

@@ -249,7 +249,10 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 		if !radio.inExecution {
 			window.Fps(FPS_DEFAULT)
 			radio.inExecution = false
-			env.states[radio.lastState].spriteName = BLACK_RING
+			lastState := env.states[radio.lastState]
+			if lastState != nil {
+				lastState.spriteName = BLACK_RING
+			}
 		}
 	}
 

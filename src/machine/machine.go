@@ -54,7 +54,7 @@ func Execute(m Machine, fita []string, channel chan int) bool {
 		utils.DebugFita(fita, i)
 
 		if ok := NextTransition(m, s); !ok {
-			fmt.Printf("entrada: %s rejeitada", fita)
+			fmt.Printf("entrada: %s rejeitada\n", fita)
 			channel <- STATE_INPUT_REJECTED
 			return isAccepted
 		}
