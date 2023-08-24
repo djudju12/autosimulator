@@ -1,6 +1,9 @@
 package utils
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 func ParseTransition(s string) ([]string, error) {
 	// retira os double quotes do json
@@ -50,4 +53,16 @@ func Contains(slice []string, symbol string) bool {
 	}
 
 	return false
+}
+
+func DebugFita(fita []string, index int) {
+	for i, item := range fita {
+		if i == index {
+			fmt.Printf("%s* ", item)
+		} else {
+			fmt.Printf("%s ", item)
+		}
+	}
+
+	fmt.Println()
 }

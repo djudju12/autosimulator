@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/veandco/go-sdl2/gfx"
-	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
@@ -14,18 +13,16 @@ import (
 type (
 	graphicalState struct {
 		*sdl.Rect
-		state      string
-		color      sdl.Color
+		state string
+		color sdl.Color
+
+		// As keys para os estados que este aponta
 		statesKeys []string
-		isCurrent  bool
+		spriteName string
 	}
 )
 
 const (
-	BLACK_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/ring.png"
-	RED_RING_PATH   = "/home/jonathan/programacao/autosimulator/src/graphics/assets/read_ring.png"
-	ARROW_HEAD_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/arrow_head.png"
-
 	// Constantes para desenhar os estados
 	WIDTH_REC  = 50
 	HEIGTH_REC = 50
@@ -44,7 +41,7 @@ func NewState(rect *sdl.Rect, state string, colour sdl.Color, statesKeys []strin
 		state:      state,
 		color:      colour,
 		statesKeys: statesKeys,
-		isCurrent:  false,
+		spriteName: BLACK_RING,
 	}
 }
 
@@ -59,30 +56,30 @@ func (s *graphicalState) Center() sdl.Point {
 	}
 }
 
-func (s *graphicalState) Draw(renderer *sdl.Renderer, font *ttf.Font, states map[string]*graphicalState) {
-	s.drawRing(renderer)
+func (s *graphicalState) Draw(w *SDLWindow, states map[string]*graphicalState) {
+	renderer := w.renderer
+	words := w.cacheWords
+	sprites := w.cacheSprites
+	// fmt.Printf("\n\nwords: %+v\nsprints:%+v\n\n", words, sprites)
+
+	s.drawRing(renderer, sprites)
 	//TODO: what i gonna do with this fontRating thing that i created?
-	s.drawText(renderer, font, 2)
+	s.drawText(renderer, w.font, words)
 
 	if len(s.statesKeys) != 0 {
-		s.drawLines(renderer, font, states, 2)
+		s.drawLines(renderer, w.font, states, 2)
 	}
 }
 
-func (s *graphicalState) drawRing(renderer *sdl.Renderer) {
+func (s *graphicalState) drawRing(renderer *sdl.Renderer, sprites map[string]*sdl.Surface) {
 	// TODO: GLOBAL
-	var path string
-	if s.isCurrent {
-		path = RED_RING_PATH
-	} else {
-		path = BLACK_RING_PATH
-	}
+	imgSurface := sprites[s.spriteName]
 
-	imgSurface, err := img.Load(path)
-	if err != nil {
-		fmt.Printf("Erro ao carregar a imagem: %v\n", err)
-		os.Exit(1)
-	}
+	// if s.isCurrent {
+	// 	imgSurface =
+	// } else {
+	// 	imgSurface = sprites["BLACK_RING_PATH"]
+	// }
 
 	texture, err := renderer.CreateTextureFromSurface(imgSurface)
 	if err != nil {
@@ -93,19 +90,20 @@ func (s *graphicalState) drawRing(renderer *sdl.Renderer) {
 	renderer.Copy(texture, nil, s.Rect)
 }
 
-func (s *graphicalState) drawText(renderer *sdl.Renderer, font *ttf.Font, fontRating int32) {
-	if fontRating == 0 {
-		fmt.Printf("Erro: fontRating não pode ser 0\n")
-		os.Exit(1)
-	}
+func (s *graphicalState) drawText(renderer *sdl.Renderer, font *ttf.Font, words map[string]*sdl.Surface) {
+	var fontRating int32 = 2
 
-	// TODO: Caching fonts
-	surface, err := font.RenderUTF8Solid(s.state, s.color)
-	if err != nil {
-		fmt.Printf("Erro ao renderizar a fonte: %v\n", err)
-		os.Exit(1)
+	// verifica o cache de words
+	surface := words[s.state]
+	if surface == nil {
+		var err error
+		surface, err = font.RenderUTF8Solid(s.state, s.color)
+		if err != nil {
+			fmt.Printf("Erro ao renderizar a fonte: %v\n", err)
+			os.Exit(1)
+		}
+		words[s.state] = surface
 	}
-	defer surface.Free()
 
 	texture, err := renderer.CreateTextureFromSurface(surface)
 	if err != nil {

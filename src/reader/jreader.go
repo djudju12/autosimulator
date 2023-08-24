@@ -31,16 +31,6 @@ func ReadStackMachine(path string) *stackMachine.Machine {
 	return m
 }
 
-// func ReadInputs(path string) []afdMachine.Input {
-// 	var in []afdMachine.Input
-// 	content := readFileContent(path)
-// 	err := json.Unmarshal(content, &in)
-// 	if err != nil {
-// 		unmarshalError(path, err)
-// 	}
-// 	return in
-// }
-
 func unmarshalError(path string, err error) {
 	fmt.Printf("Erro ao tentar fazer o unmarshal do arquivo %s. Error: %s\n", path, err)
 	os.Exit(1)
