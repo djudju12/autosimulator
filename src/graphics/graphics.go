@@ -183,6 +183,7 @@ func (env *environment) Destroy() {
 	env.w.renderer.Destroy()
 	env.w.font.Close()
 	close(env.radio.channel)
+	_ = free(env.w.ui)
 
 	for _, v := range env.w.cacheSprites {
 		v.Free()
