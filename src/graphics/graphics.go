@@ -26,6 +26,8 @@ const (
 	RED_RING_PATH   = "/home/jonathan/programacao/autosimulator/src/graphics/assets/red_ring.png"
 	GREEN_RING      = "GREEN_RING"
 	GREEN_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/green_ring.png"
+	BLUE_RING       = "BLUE_RING"
+	BLUE_RING_PATH  = "/home/jonathan/programacao/autosimulator/src/graphics/assets/blue_ring.png"
 	FITA_HEAD_PATH  = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita_head.png"
 	FITA_HEAD       = "FITA_HEAD"
 	FITA_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita.png"
@@ -121,8 +123,12 @@ func PopulateEnvironment(window *_SDLWindow, activeMachine machine.Machine) *env
 	greenRing, err := img.Load(GREEN_RING_PATH)
 	checkError(err, GREEN_RING)
 
+	blueRing, err := img.Load(BLUE_RING_PATH)
+	checkError(err, GREEN_RING)
+
 	window.cacheSprites[BLACK_RING] = blackRing
 	window.cacheSprites[RED_RING] = redRing
+	window.cacheSprites[BLUE_RING] = blueRing
 	window.cacheSprites[GREEN_RING] = greenRing
 	window.cacheSprites[FITA] = fita
 	window.cacheSprites[FITA_HEAD] = fitaHead
@@ -215,26 +221,29 @@ func talk(env *environment) {
 	msg := radio.lastMsg
 	switch msg {
 	case machine.STATE_CHANGE:
-		// Marca a flag "estado atual" no estado atual
-		currentState := radio.activeMachine.CurrentState()
-		env.states[currentState].spriteName = RED_RING
-
-		// gravando pra saber qm foi o ultimo quando voltar aqui
-		radio.lastState = currentState
+		env.changeState(RED_RING)
 
 	case machine.STATE_INPUT_ACCEPTED:
-		currentState := radio.activeMachine.CurrentState()
-		radio.inExecution = false
-		env.states[currentState].spriteName = GREEN_RING
+		env.changeState(GREEN_RING)
 		radio.lastMsg = machine.STATE_NOT_CHANGE
 
 	case machine.STATE_INPUT_REJECTED:
-		radio.inExecution = false
+		env.changeState(RED_RING)
 		radio.lastMsg = machine.STATE_NOT_CHANGE
 
 	default:
 	}
 
+}
+
+func (env *environment) changeState(spriteName string) {
+	radio := env.radio
+
+	currentState := radio.activeMachine.CurrentState()
+	env.states[currentState].spriteName = spriteName
+
+	// para mudar a cor para o normal na proxima iteraçao
+	radio.lastState = currentState
 }
 
 func pollEvent(env *environment) {
@@ -410,7 +419,7 @@ func (env *environment) Reset() {
 	}
 
 	if initalState != nil {
-		initalState.spriteName = GREEN_RING
+		initalState.spriteName = BLUE_RING
 	}
 }
 
