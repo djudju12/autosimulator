@@ -52,7 +52,6 @@ func (s *graphicalState) Draw(w *_SDLWindow, states map[string]*graphicalState) 
 	renderer := w.renderer
 	words := w.cacheWords
 	sprites := w.cacheSprites
-	// fmt.Printf("\n\nwords: %+v\nsprints:%+v\n\n", words, sprites)
 
 	ringTexture, err := s.drawRing(renderer, sprites)
 	if err != nil {

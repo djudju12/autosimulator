@@ -50,7 +50,6 @@ type (
 		ui           []*sdl.Texture
 		terminate    bool
 		redraw       bool
-		fps          uint32
 	}
 
 	drag struct {
@@ -62,6 +61,7 @@ type (
 	machineChannel struct {
 		activeMachine machine.Machine
 		input         *collections.Fita
+		inputToPrint  []string
 		channel       chan int
 		lastMsg       int
 		inExecution   bool
@@ -72,11 +72,12 @@ type (
 func Mainloop(env *environment) {
 	window := env.w
 	runtime.LockOSThread()
+	env.Reset()
 	for !window.terminate {
 		talk(env)
 		pollEvent(env)
 		draw(env)
-		sdl.Delay(window.fps)
+		sdl.Delay(1000 / FPS_DEFAULT)
 	}
 
 	defer env.Destroy()
@@ -95,6 +96,7 @@ func PopulateEnvironment(window *_SDLWindow, activeMachine machine.Machine) *env
 		inExecution:   false,
 		activeMachine: activeMachine,
 		input:         collections.NewFita(),
+		lastState:     activeMachine.CurrentState(),
 	}
 
 	checkError := func(err error, name string) {
@@ -169,7 +171,6 @@ func NewSDLWindow() *_SDLWindow {
 		renderer:     renderer,
 		font:         font,
 		terminate:    false,
-		fps:          1000 / FPS_DEFAULT,
 		cacheWords:   cacheWords,
 		cacheSprites: cacheSprites,
 		redraw:       true,
@@ -196,16 +197,21 @@ func (env *environment) Destroy() {
 
 func talk(env *environment) {
 	radio := env.radio
-	if radio.inExecution {
-		env.w.redraw = true
-		radio.lastMsg = <-radio.channel
+	if radio.lastMsg == machine.STATE_NOT_CHANGE {
+		radio.inExecution = false
+		return
 	}
+
+	radio.inExecution = true
+	env.w.redraw = true
+	radio.inputToPrint = radio.input.Peek(8)
+	radio.lastMsg = <-radio.channel
 
 	if radio.lastState != "" {
 		env.states[radio.lastState].spriteName = BLACK_RING
 	}
 
-	window := env.w
+	// window := env.w
 	msg := radio.lastMsg
 	switch msg {
 	case machine.STATE_CHANGE:
@@ -221,12 +227,10 @@ func talk(env *environment) {
 		radio.inExecution = false
 		env.states[currentState].spriteName = GREEN_RING
 		radio.lastMsg = machine.STATE_NOT_CHANGE
-		window.Fps(FPS_DEFAULT)
 
 	case machine.STATE_INPUT_REJECTED:
 		radio.inExecution = false
 		radio.lastMsg = machine.STATE_NOT_CHANGE
-		window.Fps(FPS_DEFAULT)
 
 	default:
 	}
@@ -260,20 +264,14 @@ func pollEvent(env *environment) {
 
 func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 	radio := env.radio
-	window := env.w
-
 	switch event.Keysym.Sym {
 	case sdl.K_RETURN:
-		if !radio.inExecution {
-			radio.inExecution = true
-			currentState := radio.activeMachine.CurrentState()
-			env.states[currentState].spriteName = RED_RING
-			window.Fps(FPS_EXECUTING)
-			go machine.Execute(radio.activeMachine, radio.input, radio.channel)
+		if !radio.inExecution && event.Type == sdl.KEYDOWN {
+			env.RunMachine()
 		}
 
 	case sdl.K_r:
-		if !radio.inExecution {
+		if !radio.inExecution && event.Type == sdl.KEYDOWN {
 			env.Reset()
 		}
 	}
@@ -328,6 +326,10 @@ func handleMouseMotionEvent(env *environment) {
 func draw(env *environment) {
 	window := env.w
 	if env.w.redraw {
+		if env.radio.inExecution {
+			sdl.Delay(1000 / FPS_EXECUTING)
+		}
+
 		if len(window.ui) != 0 {
 			free(window.ui)
 		}
@@ -353,7 +355,6 @@ func draw(env *environment) {
 		env.w.redraw = false
 	}
 
-	// drawAxs(env)
 	window.renderer.Present()
 }
 
@@ -365,6 +366,7 @@ func drawUi(env *environment) error {
 
 func drawNodes(env *environment) error {
 	var err error
+
 	for _, state := range env.states {
 		err = state.Draw(env.w, env.states)
 		if err != nil {
@@ -392,26 +394,36 @@ func (w *_SDLWindow) cleanUp() error {
 
 // utilidade
 func (env *environment) Reset() {
+	fmt.Println("Reseting...")
 	window := env.w
 	radio := env.radio
-	window.Fps(FPS_DEFAULT)
-	fmt.Printf("reseting..")
+	radio.activeMachine.Init()
 	window.redraw = true
 	radio.inExecution = false
 	lastState := env.states[radio.lastState]
+	initalState := env.states[radio.activeMachine.CurrentState()]
 	radio.input.Reset()
+	radio.inputToPrint = radio.input.Peek(8)
+
 	if lastState != nil {
 		lastState.spriteName = BLACK_RING
 	}
+
+	if initalState != nil {
+		initalState.spriteName = GREEN_RING
+	}
+}
+
+func (env *environment) RunMachine() {
+	fmt.Println("Running...")
+	radio := env.radio
+	radio.lastMsg = machine.STATE_CHANGE
+	go machine.Execute(radio.activeMachine, radio.input, radio.channel)
 }
 
 func (env *environment) Input(fita *collections.Fita) {
 	env.radio.input = fita
 	fita.Write(machine.TAIL_FITA)
-}
-
-func (w *_SDLWindow) Fps(amout uint32) {
-	w.fps = 1000 / amout
 }
 
 func (w *_SDLWindow) textSurface(text string, color sdl.Color) (*sdl.Surface, error) {

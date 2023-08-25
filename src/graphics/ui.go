@@ -1,15 +1,12 @@
 package graphics
 
 import (
-	"fmt"
-
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 func (w *_SDLWindow) drawFita(env *environment, headIndex int, padx, pady int32) error {
-	fita := env.radio.input
-	fitaAparente := fita.Peek(8)
-	fmt.Printf("Fita aparente:%s\n", fitaAparente)
+	fitaAparente := env.radio.inputToPrint
+
 	textures := []*sdl.Texture{}
 
 	// body

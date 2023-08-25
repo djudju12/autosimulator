@@ -32,6 +32,10 @@ func (f *Fita) Read() (string, bool) {
 	return value, true
 }
 
+func (f *Fita) Print() {
+	fmt.Printf("%s\n", f.Peek(f.Length()))
+}
+
 func (f *Fita) Reset() {
 	f.current = f.first
 }
@@ -73,31 +77,6 @@ func (f *Fita) Write(item string) {
 	}
 
 	f.len++
-}
-
-// func (f *Fita) WriteLast(item string) {
-// 	newNode := &node{
-// 		value: item,
-// 		next:  nil,
-// 	}
-
-// 	if f.first == nil {
-// 		f.first = newNode
-// 		f.current = newNode
-// 		f.last = newNode
-// 	} else {
-
-// 	}
-
-// }
-
-func (f Fita) ToArray() []string {
-	var result []string
-	for s, ok := f.Read(); ok; f.Read() {
-		result = append(result, s)
-	}
-
-	return result
 }
 
 func FitaFromArray(value []string) *Fita {

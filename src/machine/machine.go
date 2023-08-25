@@ -40,20 +40,18 @@ type (
 )
 
 func Execute(m Machine, fita *collections.Fita, channel chan int) bool {
-	m.Init()
 	// init seta o estado inicial
-	isAccepted := false
+	m.Init()
 
+	isAccepted := true
 	var s string
 	for i := 0; i < fita.Length()-1; i++ {
-		channel <- STATE_CHANGE
 		s, _ = fita.Read()
-
 		if ok := NextTransition(m, s); !ok {
 			fmt.Printf("entrada: %+v rejeitada\n", fita.Peek(fita.Length()))
-			channel <- STATE_INPUT_REJECTED
-			return isAccepted
+			break
 		}
+		channel <- STATE_CHANGE
 	}
 
 	isAccepted = m.IsLastState()
