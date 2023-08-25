@@ -1,8 +1,8 @@
 package stackMachine
 
 import (
+	"autosimulator/src/collections"
 	"autosimulator/src/machine"
-	"autosimulator/src/stack"
 	"autosimulator/src/utils"
 	"fmt"
 	"os"
@@ -13,9 +13,10 @@ type (
 		machine.BaseMachine
 		Transitions map[string][]Transition `json:"transitions"`
 
-		_stackA       stack.Stack
-		_stackB       stack.Stack
+		_stackA       collections.Stack
+		_stackB       collections.Stack
 		_currentState string
+		_lastRead     int
 	}
 
 	Transition struct {
@@ -29,8 +30,8 @@ type (
 )
 
 func New() *Machine {
-	a := stack.New()
-	b := stack.New()
+	a := collections.NewStack()
+	b := collections.NewStack()
 	return &Machine{_stackA: *a, _stackB: *b}
 }
 
@@ -78,7 +79,7 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 	b := &stackMachine._stackB
 
 	// TODO tenho que checar se esta no ultimo estado, não?
-	check := func(s *stack.Stack, read string, write string) bool {
+	check := func(s *collections.Stack, read string, write string) bool {
 		if read != "&" {
 			if s.IsEmpty() {
 				return false

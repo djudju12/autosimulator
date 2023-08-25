@@ -1,4 +1,4 @@
-package stack
+package collections
 
 import (
 	"fmt"
@@ -13,11 +13,11 @@ type (
 
 	node struct {
 		value interface{}
-		prev  *node
+		next  *node
 	}
 )
 
-func New() *Stack {
+func NewStack() *Stack {
 	firstN := &node{"?", nil}
 	return &Stack{firstN, 0}
 }
@@ -33,7 +33,7 @@ func (s *Stack) Pop() interface{} {
 		os.Exit(1)
 	}
 	temp := s.first
-	s.first = s.first.prev
+	s.first = s.first.next
 	return temp.value
 }
 

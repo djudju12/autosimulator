@@ -4,6 +4,7 @@ import (
 	"autosimulator/src/machine"
 	"autosimulator/src/utils"
 	"errors"
+	"fmt"
 )
 
 type (
@@ -67,8 +68,12 @@ func (t *Transition) GetResultState() string {
 
 func (t *Transition) MakeTransition(m machine.Machine) bool {
 	// TODO handle ok properly
-	v, ok := m.(*Machine)
-	v._currentState = t.ResultState
+	afdMachine, ok := m.(*Machine)
+	if !ok {
+		fmt.Printf("não foi possível fazer a confirmação do tipo: t.MakeTransition()")
+	}
+
+	afdMachine._currentState = t.ResultState
 	return ok
 }
 

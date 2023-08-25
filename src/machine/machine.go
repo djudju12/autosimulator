@@ -1,7 +1,7 @@
 package machine
 
 import (
-	"autosimulator/src/utils"
+	"autosimulator/src/collections"
 	"fmt"
 )
 
@@ -39,28 +39,21 @@ type (
 	}
 )
 
-func Execute(m Machine, fita []string, channel chan int) bool {
+func Execute(m Machine, fita *collections.Fita, channel chan int) bool {
 	m.Init()
-
 	// init seta o estado inicial
 	isAccepted := false
-	fita = append(fita, TAIL_FITA)
-	i := 0
-	s := fita[i]
 
-	for s != TAIL_FITA {
-		// DEBUG
+	var s string
+	for i := 0; i < fita.Length()-1; i++ {
 		channel <- STATE_CHANGE
-		utils.DebugFita(fita, i)
+		s, _ = fita.Read()
 
 		if ok := NextTransition(m, s); !ok {
-			fmt.Printf("entrada: %s rejeitada\n", fita)
+			fmt.Printf("entrada: %+v rejeitada\n", fita.Peek(fita.Length()))
 			channel <- STATE_INPUT_REJECTED
 			return isAccepted
 		}
-
-		i++
-		s = fita[i]
 	}
 
 	isAccepted = m.IsLastState()
@@ -70,8 +63,6 @@ func Execute(m Machine, fita []string, channel chan int) bool {
 		channel <- STATE_INPUT_REJECTED
 	}
 
-	//DEBUG
-	utils.DebugFita(fita, i)
 	return isAccepted
 }
 

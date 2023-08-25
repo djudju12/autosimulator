@@ -8,10 +8,9 @@ import (
 
 func (w *_SDLWindow) drawFita(env *environment, headIndex int, padx, pady int32) error {
 	fita := env.radio.input
+	fitaAparente := fita.Peek(8)
+	fmt.Printf("Fita aparente:%s\n", fitaAparente)
 	textures := []*sdl.Texture{}
-	if headIndex >= len(fita) {
-		return fmt.Errorf("index da cabeça da fita invalido. fita[%d] head: %d", len(fita), headIndex)
-	}
 
 	// body
 	fitaTexture, err := w.renderer.CreateTextureFromSurface(w.cacheSprites[FITA])
@@ -50,8 +49,9 @@ func (w *_SDLWindow) drawFita(env *environment, headIndex int, padx, pady int32)
 	}
 
 	headRec := &sdl.Rect{
-		X: fitaRec.X + int32(headIndex)*headWidth,
-		Y: fitaRec.Y - headHeigth - pady,
+		X: fitaRec.X,
+		// TODO: a mesma gambiarra do anterior (que na verdade é o proximo)
+		Y: fitaRec.Y - (headHeigth - 2) - pady,
 		W: headWidth,
 		H: headHeigth,
 	}
@@ -62,7 +62,7 @@ func (w *_SDLWindow) drawFita(env *environment, headIndex int, padx, pady int32)
 	var textSurface *sdl.Surface
 	var textTexture *sdl.Texture
 	var textRect *sdl.Rect
-	for i, symbol := range fita {
+	for i, symbol := range fitaAparente {
 		textSurface, err = w.textSurface(symbol, BLACK)
 		if err != nil {
 			return err
@@ -79,7 +79,9 @@ func (w *_SDLWindow) drawFita(env *environment, headIndex int, padx, pady int32)
 		}
 
 		textRect = &sdl.Rect{
-			X: (fitaRec.X + (headWidth * int32(i))) + fontW/2,
+			// (headWidth-2) pois as paredes do quadrados contam 1 pixel cara
+			// TODO: Isso é uma gambiarra.
+			X: (fitaRec.X + ((headWidth - 2) * int32(i))) + fontW/2,
 			Y: fitaRec.Y,
 			W: fontW,
 			H: fontH,

@@ -1,6 +1,7 @@
 package graphics
 
 import (
+	"autosimulator/src/collections"
 	"autosimulator/src/machine"
 	"fmt"
 	"os"
@@ -18,7 +19,7 @@ const (
 	FONT_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
 	FONT_ZIE        = 24
 	FPS_DEFAULT     = 60
-	FPS_EXECUTING   = 2
+	FPS_EXECUTING   = 1
 	BLACK_RING      = "BLACK_RING"
 	BLACK_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/ring.png"
 	RED_RING        = "RED_RING"
@@ -60,7 +61,7 @@ type (
 
 	machineChannel struct {
 		activeMachine machine.Machine
-		input         []string
+		input         *collections.Fita
 		channel       chan int
 		lastMsg       int
 		inExecution   bool
@@ -71,7 +72,6 @@ type (
 func Mainloop(env *environment) {
 	window := env.w
 	runtime.LockOSThread()
-
 	for !window.terminate {
 		talk(env)
 		pollEvent(env)
@@ -94,7 +94,7 @@ func PopulateEnvironment(window *_SDLWindow, activeMachine machine.Machine) *env
 		lastMsg:       machine.STATE_NOT_CHANGE,
 		inExecution:   false,
 		activeMachine: activeMachine,
-		input:         []string{machine.TAIL_FITA},
+		input:         collections.NewFita(),
 	}
 
 	checkError := func(err error, name string) {
@@ -201,32 +201,31 @@ func talk(env *environment) {
 		radio.lastMsg = <-radio.channel
 	}
 
+	if radio.lastState != "" {
+		env.states[radio.lastState].spriteName = BLACK_RING
+	}
+
 	window := env.w
 	msg := radio.lastMsg
 	switch msg {
 	case machine.STATE_CHANGE:
-		if radio.lastState != "" {
-			// remove a flag de "estado atual" do estado passado
-			env.states[radio.lastState].spriteName = BLACK_RING
-		}
-
 		// Marca a flag "estado atual" no estado atual
 		currentState := radio.activeMachine.CurrentState()
 		env.states[currentState].spriteName = RED_RING
 
 		// gravando pra saber qm foi o ultimo quando voltar aqui
 		radio.lastState = currentState
-		radio.lastMsg = machine.STATE_NOT_CHANGE
 
 	case machine.STATE_INPUT_ACCEPTED:
 		currentState := radio.activeMachine.CurrentState()
-		env.states[currentState].spriteName = GREEN_RING
 		radio.inExecution = false
+		env.states[currentState].spriteName = GREEN_RING
+		radio.lastMsg = machine.STATE_NOT_CHANGE
 		window.Fps(FPS_DEFAULT)
 
 	case machine.STATE_INPUT_REJECTED:
-		// vou fazer algo com isso depois (eu acho)
 		radio.inExecution = false
+		radio.lastMsg = machine.STATE_NOT_CHANGE
 		window.Fps(FPS_DEFAULT)
 
 	default:
@@ -266,19 +265,16 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 	switch event.Keysym.Sym {
 	case sdl.K_RETURN:
 		if !radio.inExecution {
-			window.Fps(FPS_EXECUTING)
 			radio.inExecution = true
+			currentState := radio.activeMachine.CurrentState()
+			env.states[currentState].spriteName = RED_RING
+			window.Fps(FPS_EXECUTING)
 			go machine.Execute(radio.activeMachine, radio.input, radio.channel)
 		}
 
 	case sdl.K_r:
 		if !radio.inExecution {
-			window.Fps(FPS_DEFAULT)
-			radio.inExecution = false
-			lastState := env.states[radio.lastState]
-			if lastState != nil {
-				lastState.spriteName = BLACK_RING
-			}
+			env.Reset()
 		}
 	}
 
@@ -363,13 +359,8 @@ func draw(env *environment) {
 
 func drawUi(env *environment) error {
 	var padx, pady int32 = 5, 5
-
 	err := env.w.drawFita(env, 0, padx, pady)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func drawNodes(env *environment) error {
@@ -400,8 +391,23 @@ func (w *_SDLWindow) cleanUp() error {
 }
 
 // utilidade
-func (env *environment) Input(fita []string) {
+func (env *environment) Reset() {
+	window := env.w
+	radio := env.radio
+	window.Fps(FPS_DEFAULT)
+	fmt.Printf("reseting..")
+	window.redraw = true
+	radio.inExecution = false
+	lastState := env.states[radio.lastState]
+	radio.input.Reset()
+	if lastState != nil {
+		lastState.spriteName = BLACK_RING
+	}
+}
+
+func (env *environment) Input(fita *collections.Fita) {
 	env.radio.input = fita
+	fita.Write(machine.TAIL_FITA)
 }
 
 func (w *_SDLWindow) Fps(amout uint32) {
