@@ -1,4 +1,5 @@
 {
+   "type": "simple_machine",
    "states": [
       "q0",
       "q1",

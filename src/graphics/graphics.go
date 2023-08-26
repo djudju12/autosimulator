@@ -14,24 +14,34 @@ import (
 )
 
 const (
-	WITDH, HEIGTH   = 800, 600
-	TITLE           = "Simulador de Autômato"
-	FONT_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
-	FONT_ZIE        = 24
-	FPS_DEFAULT     = 60
-	FPS_EXECUTING   = 1
+	WITDH, HEIGTH = 800, 600
+	TITLE         = "Simulador de Autômato"
+	FONT_PATH     = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
+	FONT_ZIE      = 24
+	FPS_DEFAULT   = 60
+	FPS_EXECUTING = 1
+	// TODO: ta se tornando um incrivel pesado essas variaveis
+	// Talvez um map ou uma sprite sheet
 	BLACK_RING      = "BLACK_RING"
 	BLACK_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/ring.png"
-	RED_RING        = "RED_RING"
-	RED_RING_PATH   = "/home/jonathan/programacao/autosimulator/src/graphics/assets/red_ring.png"
+
+	RED_RING      = "RED_RING"
+	RED_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/red_ring.png"
+
 	GREEN_RING      = "GREEN_RING"
 	GREEN_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/green_ring.png"
-	BLUE_RING       = "BLUE_RING"
-	BLUE_RING_PATH  = "/home/jonathan/programacao/autosimulator/src/graphics/assets/blue_ring.png"
-	FITA_HEAD_PATH  = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita_head.png"
-	FITA_HEAD       = "FITA_HEAD"
-	FITA_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita.png"
-	FITA            = "FITA"
+
+	BLUE_RING      = "BLUE_RING"
+	BLUE_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/blue_ring.png"
+
+	FITA_HEAD      = "FITA_HEAD"
+	FITA_HEAD_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita_head.png"
+
+	FITA      = "FITA"
+	FITA_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita.png"
+
+	STACK      = "STACK"
+	STACK_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/stack.png"
 )
 
 type (
@@ -73,6 +83,8 @@ type (
 
 func Mainloop(env *environment) {
 	window := env.w
+
+	// sdl2 precisa rodar na main thread.
 	runtime.LockOSThread()
 	env.Reset()
 	for !window.terminate {
@@ -126,12 +138,16 @@ func PopulateEnvironment(window *_SDLWindow, activeMachine machine.Machine) *env
 	blueRing, err := img.Load(BLUE_RING_PATH)
 	checkError(err, GREEN_RING)
 
+	stack, err := img.Load(STACK_PATH)
+	checkError(err, STACK)
+
 	window.cacheSprites[BLACK_RING] = blackRing
 	window.cacheSprites[RED_RING] = redRing
 	window.cacheSprites[BLUE_RING] = blueRing
 	window.cacheSprites[GREEN_RING] = greenRing
 	window.cacheSprites[FITA] = fita
 	window.cacheSprites[FITA_HEAD] = fitaHead
+	window.cacheSprites[STACK] = stack
 
 	env := &environment{
 		w:        window,
@@ -210,7 +226,7 @@ func talk(env *environment) {
 
 	radio.inExecution = true
 	env.w.redraw = true
-	radio.inputToPrint = radio.input.Peek(8)
+	radio.inputToPrint = radio.input.Peek(TAMANHO_ESTRUTURAS)
 	radio.lastMsg = <-radio.channel
 
 	if radio.lastState != "" {
@@ -369,8 +385,27 @@ func draw(env *environment) {
 
 func drawUi(env *environment) error {
 	var padx, pady int32 = 5, 5
-	err := env.w.drawFita(env, 0, padx, pady)
-	return err
+	err := env.drawFita(0, padx, pady)
+	if err != nil {
+		return err
+	}
+
+	machineType := env.radio.activeMachine.Type()
+	amount := 0
+	switch machineType {
+	case machine.ONE_STACK_MACHINE:
+		amount = 1
+	case machine.TWO_STACK_MACHINE:
+		amount = 2
+	default:
+	}
+
+	err = env.drawStacks(amount, padx, pady)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func drawNodes(env *environment) error {
@@ -412,7 +447,7 @@ func (env *environment) Reset() {
 	lastState := env.states[radio.lastState]
 	initalState := env.states[radio.activeMachine.CurrentState()]
 	radio.input.Reset()
-	radio.inputToPrint = radio.input.Peek(8)
+	radio.inputToPrint = radio.input.Peek(TAMANHO_ESTRUTURAS)
 
 	if lastState != nil {
 		lastState.spriteName = BLACK_RING
@@ -439,18 +474,20 @@ func (w *_SDLWindow) textSurface(text string, color sdl.Color) (*sdl.Surface, er
 	font := w.font
 	words := w.cacheWords
 
+	// Já tem no cache
 	surface := words[text]
-	var err error
-	if surface == nil {
-		surface, err = font.RenderUTF8Solid(text, color)
-		if err != nil {
-			return nil, err
-		}
-
-		words[text] = surface
+	if surface != nil {
+		return surface, nil
 	}
 
-	return surface, err
+	// Cria o novo testo e coloca no cache
+	surface, err := font.RenderUTF8Solid(text, color)
+	if err != nil {
+		return nil, err
+	}
+
+	words[text] = surface
+	return surface, nil
 }
 
 func Center(rec *sdl.Rect) sdl.Point {

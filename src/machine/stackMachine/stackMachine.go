@@ -13,8 +13,8 @@ type (
 		machine.BaseMachine
 		Transitions map[string][]Transition `json:"transitions"`
 
-		_stackA       collections.Stack
-		_stackB       collections.Stack
+		_stackA       *collections.Stack
+		_stackB       *collections.Stack
 		_currentState string
 		_lastRead     int
 	}
@@ -32,11 +32,15 @@ type (
 func New() *Machine {
 	a := collections.NewStack()
 	b := collections.NewStack()
-	return &Machine{_stackA: *a, _stackB: *b}
+	return &Machine{_stackA: a, _stackB: b}
 }
 
 func (m *Machine) Init() {
 	m._currentState = m.InitialState
+	a := collections.NewStack()
+	b := collections.NewStack()
+	m._stackA = a
+	m._stackB = b
 }
 
 func (m *Machine) IsLastState() bool {
@@ -51,6 +55,10 @@ func (m *Machine) CurrentState() string {
 	return m._currentState
 }
 
+func (m *Machine) Type() int {
+	return machine.TWO_STACK_MACHINE
+}
+
 func (m *Machine) GetTransitions(state string) []machine.Transition {
 	transitions := m.Transitions[state]
 	result := make([]machine.Transition, len(transitions))
@@ -63,8 +71,13 @@ func (m *Machine) GetTransitions(state string) []machine.Transition {
 
 	return result
 }
+
 func (m *Machine) PossibleTransitions() []machine.Transition {
 	return m.GetTransitions(m._currentState)
+}
+
+func (m *Machine) Stacks() []*collections.Stack {
+	return []*collections.Stack{m._stackA, m._stackB}
 }
 
 func (t *Transition) MakeTransition(m machine.Machine) bool {
@@ -75,8 +88,8 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 		os.Exit(1)
 	}
 
-	a := &stackMachine._stackA
-	b := &stackMachine._stackB
+	a := stackMachine._stackA
+	b := stackMachine._stackB
 
 	// TODO tenho que checar se esta no ultimo estado, não?
 	check := func(s *collections.Stack, read string, write string) bool {

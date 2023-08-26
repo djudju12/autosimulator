@@ -12,7 +12,7 @@ type (
 	}
 
 	node struct {
-		value interface{}
+		value string
 		next  *node
 	}
 )
@@ -22,12 +22,12 @@ func NewStack() *Stack {
 	return &Stack{firstN, 0}
 }
 
-func (s *Stack) Len() int {
+func (s *Stack) Length() int {
 	return s.len
 }
 
 // remove o topo e retorna o valor
-func (s *Stack) Pop() interface{} {
+func (s *Stack) Pop() string {
 	if s.first == nil {
 		fmt.Println("Pop() em uma pilha vazia!")
 		os.Exit(1)
@@ -37,7 +37,7 @@ func (s *Stack) Pop() interface{} {
 	return temp.value
 }
 
-func (s *Stack) Push(value interface{}) {
+func (s *Stack) Push(value string) {
 	n := node{
 		value,
 		s.first,
@@ -49,6 +49,16 @@ func (s *Stack) IsEmpty() bool {
 	return s.first == nil
 }
 
-func (s *Stack) Peek() interface{} {
-	return s.first.value
+func (s *Stack) Peek(amout int) []string {
+	var result []string
+	current := s.first
+	for i := 0; i < amout; i++ {
+		if current == nil {
+			break
+		}
+		result = append(result, current.value)
+		current = current.next
+	}
+
+	return result
 }

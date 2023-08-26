@@ -12,12 +12,20 @@ const (
 	STATE_INPUT_REJECTED = iota
 )
 
+const (
+	SIMPLE_MACHINE    = iota
+	ONE_STACK_MACHINE = iota
+	TWO_STACK_MACHINE = iota
+)
+
 const TAIL_FITA = "?"
 const PALAVRA_VAZIA = "&"
 
 type (
 	Machine interface {
 		Init()
+		Type() int
+		Stacks() []*collections.Stack
 		GetStates() []string
 		GetTransitions(state string) []Transition
 		IsLastState() bool
@@ -36,6 +44,7 @@ type (
 		InitialState string   `json:"initialState"`
 		FinalStates  []string `json:"finalStates"`
 		Alfabet      []string `json:"alfabet"`
+		Type         string   `json:"type"`
 	}
 )
 

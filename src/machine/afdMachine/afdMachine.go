@@ -1,6 +1,7 @@
 package afdMachine
 
 import (
+	"autosimulator/src/collections"
 	"autosimulator/src/machine"
 	"autosimulator/src/utils"
 	"errors"
@@ -27,6 +28,10 @@ func New() *Machine {
 
 func (m *Machine) Init() {
 	m._currentState = m.InitialState
+}
+
+func (m *Machine) Type() int {
+	return machine.SIMPLE_MACHINE
 }
 
 func (m *Machine) CurrentState() string {
@@ -56,6 +61,10 @@ func (m *Machine) PossibleTransitions() []machine.Transition {
 
 func (m *Machine) GetStates() []string {
 	return m.States
+}
+
+func (m *Machine) Stacks() []*collections.Stack {
+	return nil
 }
 
 func (t *Transition) GetSymbol() string {

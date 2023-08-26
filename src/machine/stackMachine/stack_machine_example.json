@@ -1,5 +1,5 @@
 {
-   "type": "stack_machine",
+   "type": "2_stack_machine",
    "states": [
       "q0",
       "q1",
