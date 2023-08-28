@@ -12,6 +12,11 @@ type Fita struct {
 	len     int
 }
 
+const (
+	TAIL_FITA     = "?"
+	PALAVRA_VAZIA = "&"
+)
+
 func NewFita() *Fita {
 	return &Fita{
 		first:   nil,
@@ -63,7 +68,7 @@ func FitaFromArray(value []string) *Fita {
 	for _, item := range value {
 		fita.Write(item)
 	}
-
+	fita.Write(TAIL_FITA)
 	return fita
 }
 

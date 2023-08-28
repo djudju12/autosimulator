@@ -59,10 +59,6 @@ func (m *Machine) PossibleTransitions() []machine.Transition {
 	return m.GetTransitions(m._currentState)
 }
 
-func (m *Machine) GetStates() []string {
-	return m.States
-}
-
 func (m *Machine) Stacks() []*collections.Stack {
 	return nil
 }
@@ -108,4 +104,8 @@ func (t *Transition) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+func (t *Transition) Stringfy() string {
+	return fmt.Sprintf("(%s, %s)", t.Symbol, t.ResultState)
 }

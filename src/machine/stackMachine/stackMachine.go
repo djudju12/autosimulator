@@ -16,7 +16,6 @@ type (
 		_stackA       *collections.Stack
 		_stackB       *collections.Stack
 		_currentState string
-		_lastRead     int
 	}
 
 	Transition struct {
@@ -44,11 +43,7 @@ func (m *Machine) Init() {
 }
 
 func (m *Machine) IsLastState() bool {
-	return utils.Contains(m.FinalStates, m._currentState)
-}
-
-func (m *Machine) GetStates() []string {
-	return m.States
+	return machine.NextTransition(m, collections.TAIL_FITA)
 }
 
 func (m *Machine) CurrentState() string {
@@ -59,7 +54,7 @@ func (m *Machine) Type() int {
 	return machine.TWO_STACK_MACHINE
 }
 
-func (m *Machine) GetTransitions(state string) []machine.Transition {
+func (m *Machine) getTransitions(state string) []machine.Transition {
 	transitions := m.Transitions[state]
 	result := make([]machine.Transition, len(transitions))
 
@@ -73,7 +68,7 @@ func (m *Machine) GetTransitions(state string) []machine.Transition {
 }
 
 func (m *Machine) PossibleTransitions() []machine.Transition {
-	return m.GetTransitions(m._currentState)
+	return m.getTransitions(m._currentState)
 }
 
 func (m *Machine) Stacks() []*collections.Stack {
@@ -144,4 +139,8 @@ func (t *Transition) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
+}
+
+func (t *Transition) Stringfy() string {
+	return fmt.Sprintf("(%s, %s, %s, %s, %s, %s)", t.Symbol, t.ReadA, t.WriteA, t.ReadB, t.WriteB, t.ResultState)
 }

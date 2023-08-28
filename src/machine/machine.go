@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	STATE_CHANGE         = iota
-	STATE_NOT_CHANGE     = iota
-	STATE_INPUT_ACCEPTED = iota
-	STATE_INPUT_REJECTED = iota
+	ACCEPTED = "[V]"
+	REJECTED = "[X]"
+	RUNNING  = "[ ]"
+	INITIAL  = "[I]"
 )
 
 const (
@@ -18,16 +18,11 @@ const (
 	TWO_STACK_MACHINE = iota
 )
 
-const TAIL_FITA = "?"
-const PALAVRA_VAZIA = "&"
-
 type (
 	Machine interface {
 		Init()
 		Type() int
 		Stacks() []*collections.Stack
-		GetStates() []string
-		GetTransitions(state string) []Transition
 		IsLastState() bool
 		PossibleTransitions() []Transition
 		CurrentState() string
@@ -37,6 +32,7 @@ type (
 		GetSymbol() string
 		GetResultState() string
 		MakeTransition(machine Machine) bool
+		Stringfy() string
 	}
 
 	BaseMachine struct {
@@ -46,43 +42,44 @@ type (
 		Alfabet      []string `json:"alfabet"`
 		Type         string   `json:"type"`
 	}
+
+	Computation struct {
+		history []ComputationRecord
+	}
+
+	ComputationRecord struct {
+		currentState string
+		transition   Transition
+		result       string
+	}
 )
 
-func Execute(m Machine, fita *collections.Fita, channel chan int) bool {
+var Comp *Computation
+
+func Execute(m Machine, fita *collections.Fita) *Computation {
 	// init seta o estado inicial
 	m.Init()
-
-	isAccepted := true
+	Comp = newComputation(m)
 	var s string
 	for {
 		s, _ = fita.Read()
-
-		if ok := NextTransition(m, s); !ok {
-			fmt.Println("entrada rejeitada")
-			channel <- STATE_INPUT_REJECTED
-			return !isAccepted
-		}
-
-		// Se o seguinte for o final da fita
-		// retorna par achecar se esta no ultimo
-		// estado. Apenas uma mundaça visual!
-		channel <- STATE_CHANGE
-
-		if s == TAIL_FITA {
+		if s == collections.TAIL_FITA {
 			break
 		}
+
+		if ok := NextTransition(m, s); !ok {
+			Comp.setResult(REJECTED)
+			return Comp
+		}
 	}
 
-	isAccepted = m.IsLastState()
-	if isAccepted {
-		fmt.Println("entrada aceita")
-		channel <- STATE_INPUT_ACCEPTED
+	if m.IsLastState() {
+		Comp.setResult(ACCEPTED)
 	} else {
-		fmt.Println("entrada rejeitada")
-		channel <- STATE_INPUT_REJECTED
+		Comp.setResult(REJECTED)
 	}
 
-	return isAccepted
+	return Comp
 }
 
 func NextTransition(m Machine, symbol string) bool {
@@ -93,10 +90,53 @@ func NextTransition(m Machine, symbol string) bool {
 
 	for _, t := range possibleTransitions {
 		if t.GetSymbol() == symbol {
+			Comp.add(m.CurrentState(), t)
 			return t.MakeTransition(m)
 		}
 	}
 
 	return false
 
+}
+
+func newComputationRecord(m Machine) *ComputationRecord {
+	record := ComputationRecord{
+		currentState: m.CurrentState(),
+		result:       INITIAL,
+	}
+	return &record
+}
+
+func newComputation(m Machine) *Computation {
+	record := newComputationRecord(m)
+	return &Computation{
+		history: []ComputationRecord{*record},
+	}
+}
+
+func (c *Computation) setResult(result string) {
+	c.history[len(c.history)-1].result = result
+}
+
+func (c *Computation) add(currentState string, trans Transition) {
+	record := ComputationRecord{
+		currentState: currentState,
+		transition:   trans,
+		result:       RUNNING,
+	}
+
+	c.history = append(c.history, record)
+}
+
+func (c *Computation) Stringfy() string {
+	var s string
+	for i, v := range c.history {
+		if v.transition == nil {
+			s += fmt.Sprintf("%d: %s, ( ) %s\n", i, v.currentState, v.result)
+		} else {
+			s += fmt.Sprintf("%d: %s -> %s, %s %s\n", i, v.currentState, v.transition.GetResultState(), v.transition.Stringfy(), v.result)
+		}
+	}
+
+	return s
 }
