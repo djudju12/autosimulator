@@ -1,7 +1,6 @@
 package graphics
 
 import (
-	"autosimulator/src/utils"
 	"errors"
 	"fmt"
 
@@ -18,9 +17,7 @@ const (
 
 const TAMANHO_ESTRUTURAS = 9
 
-func (env *environment) drawFita(padx, pady int32) error {
-	window := env.w
-
+func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	// Calculo da posicao inicial da fita/texto
 	var fitaWidth, thickness int32 = 32, 2
 	x := padx
@@ -48,7 +45,7 @@ func (env *environment) drawFita(padx, pady int32) error {
 	}
 
 	// Texto
-	bufferFita := env.input.Peek(TAMANHO_ESTRUTURAS)
+	bufferFita := ui.bufferInput
 	err = drawText(window, bufferFita, fitaWidth, fitaRec.X, fitaRec.Y, RIGHT)
 	if err != nil {
 		return err
@@ -58,10 +55,16 @@ func (env *environment) drawFita(padx, pady int32) error {
 	return nil
 }
 
-func (env *environment) drawStacks(amount int, padx, pady int32) error {
+func (env *environment) drawStacks(hist *stackHist, histIndex int, padx, pady int32) error {
 	var err error
-	for i := 0; i < amount; i++ {
-		err = env.drawStack(int32(i), padx, pady)
+	a, b := hist.get(histIndex)
+	err = env.drawStack(a, 1, padx, pady)
+	if err != nil {
+		return err
+	}
+
+	if b != nil {
+		err = env.drawStack(b, 2, padx, pady)
 		if err != nil {
 			return err
 		}
@@ -70,9 +73,8 @@ func (env *environment) drawStacks(amount int, padx, pady int32) error {
 	return nil
 }
 
-func (env *environment) drawStack(index, padx, pady int32) error {
+func (env *environment) drawStack(stack []string, index, padx, pady int32) error {
 	window := env.w
-	machine := env.machine
 
 	// Calculo da posicao inicial do stack/texto
 	var stackWidth, thickness int32 = 32, 2
@@ -94,11 +96,9 @@ func (env *environment) drawStack(index, padx, pady int32) error {
 	}
 
 	// Textos
-	stack := machine.Stacks()[index]
-	stackAparente := utils.Reserve(stack.Peek(TAMANHO_ESTRUTURAS))
 	firstCharX := x
 	firstCharY := y + (stackWidth * (TAMANHO_ESTRUTURAS - 1))
-	err = drawText(window, stackAparente, stackWidth, firstCharX, firstCharY, UP)
+	err = drawText(window, stack, stackWidth, firstCharX, firstCharY, UP)
 	if err != nil {
 		return err
 	}

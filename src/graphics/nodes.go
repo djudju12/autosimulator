@@ -16,7 +16,6 @@ type (
 
 		// As keys para os estados que este aponta
 		statesKeys []string
-		spriteName string
 	}
 )
 
@@ -26,11 +25,6 @@ const (
 	HEIGTH_REC = 50
 	X_FIRST    = 10
 	Y_FIRST    = 10
-)
-
-var (
-	BLACK = sdl.Color{R: 0, G: 0, B: 0, A: 255}
-	WHITE = sdl.Color{R: 255, G: 255, B: 255, A: 255}
 )
 
 func NewState(rect *sdl.Rect, state string, color sdl.Color, statesKeys []string) *graphicalState {
@@ -52,7 +46,7 @@ func (s *graphicalState) Draw(w *_SDLWindow, states map[string]*graphicalState) 
 
 	outerRadius := s.Rect.W / 2
 	innerRadius := (96 * outerRadius) / 100 // % do outerRadius
-	err := s.drawRing(renderer, s.Rect.W/2, innerRadius, BLACK)
+	err := s.drawRing(renderer, s.Rect.W/2, innerRadius, s.color)
 	if err != nil {
 		return err
 	}
@@ -78,7 +72,7 @@ func (s *graphicalState) drawRing(renderer *sdl.Renderer, r1, r2 int32, color sd
 	var i int32
 	center := Center(s.Rect)
 	for i = 0; i < r1-r2; i++ {
-		gfx.AACircleColor(renderer, center.X, center.Y, (r1 - i), BLACK)
+		gfx.AACircleColor(renderer, center.X, center.Y, (r1 - i), color)
 	}
 
 	return nil
@@ -89,7 +83,7 @@ func (s *graphicalState) drawText(window *_SDLWindow, words map[string]*sdl.Surf
 	// var fontRating int32 = 2
 
 	// verifica o cache de words
-	surface, err := window.textSurface(s.state, s.color)
+	surface, err := window.textSurface(s.state, BLACK)
 	if err != nil {
 		return err
 	}
@@ -176,3 +170,5 @@ func machineStates(machine machine.Machine) map[string]*graphicalState {
 
 	return result
 }
+
+

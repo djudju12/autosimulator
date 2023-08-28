@@ -3,6 +3,7 @@ package graphics
 import (
 	"autosimulator/src/collections"
 	"autosimulator/src/machine"
+	"autosimulator/src/machine/stackMachine"
 	"fmt"
 	"os"
 	"runtime"
@@ -23,12 +24,19 @@ const (
 
 type (
 	environment struct {
-		w        *_SDLWindow
-		dragInfo *drag
-		mousePos *sdl.Point
-		machine  machine.Machine
-		input    *collections.Fita
-		states   map[string]*graphicalState
+		w       *_SDLWindow
+		machine machine.Machine
+		input   *collections.Fita
+	}
+
+	uiComponents struct {
+		states            map[string]*graphicalState
+		bufferComputation machine.Computation
+		indexComputation  int
+		bufferInput       []string
+		input             []string
+		dragInfo          *drag
+		*stackHist
 	}
 
 	_SDLWindow struct {
@@ -44,13 +52,29 @@ type (
 		clickOffset   *sdl.Point
 		selected      *graphicalState
 		leftMouseDown bool
+		mousePos      *sdl.Point
 	}
+
+	stackHist struct {
+		stackA [][]string
+		stackB [][]string
+	}
+)
+
+var (
+	ui    *uiComponents = &uiComponents{stackHist: &stackHist{[][]string{}, [][]string{}}}
+	BLACK               = sdl.Color{R: 0, G: 0, B: 0, A: 255}
+	WHITE               = sdl.Color{R: 255, G: 255, B: 255, A: 255}
+	BLUE                = sdl.Color{R: 0, G: 0, B: 255, A: 255}
+	RED                 = sdl.Color{R: 255, G: 0, B: 0, A: 255}
+	GREEN               = sdl.Color{R: 0, G: 255, B: 0, A: 255}
 )
 
 func Mainloop(env *environment) {
 	window := env.w
 	runtime.LockOSThread() // sdl2 precisa rodar na main thread.
 
+	ui.init(env)
 	for !window.terminate {
 		pollEvent(env)
 		draw(env)
@@ -61,17 +85,8 @@ func Mainloop(env *environment) {
 }
 
 func PopulateEnvironment(window *_SDLWindow, activeMachine machine.Machine) *environment {
-	dragInfo := &drag{
-		clickOffset:   &sdl.Point{X: 0, Y: 0},
-		selected:      nil,
-		leftMouseDown: false,
-	}
-
 	env := &environment{
-		w:        window,
-		dragInfo: dragInfo,
-		machine:  activeMachine,
-		states:   machineStates(activeMachine),
+		w: window, machine: activeMachine,
 	}
 
 	return env
@@ -158,16 +173,27 @@ func pollEvent(env *environment) {
 
 func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 	switch event.Keysym.Sym {
-	case sdl.K_RETURN:
+	case sdl.K_UP:
+		if event.Type == sdl.KEYDOWN {
+			if ui.indexComputation > 0 {
+				ui.indexComputation--
+			}
+		}
+	case sdl.K_DOWN:
+		if event.Type == sdl.KEYDOWN {
+			if ui.indexComputation < len(ui.bufferComputation.History)-1 {
+				ui.indexComputation++
+			}
+		}
 	case sdl.K_r:
 		// env.Reset()
 	}
 }
 
 func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
-	dragInfo := env.dragInfo
-	mousePos := env.mousePos
-	states := env.states
+	dragInfo := ui.dragInfo
+	mousePos := dragInfo.mousePos
+	states := ui.states
 
 	if event.Button != sdl.BUTTON_LEFT {
 		// Nothing to do with other buttons
@@ -200,37 +226,34 @@ func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
 
 func handleMouseMotionEvent(env *environment) {
 	x, y, _ := sdl.GetMouseState()
-	env.mousePos = &sdl.Point{X: x, Y: y}
-	dragInfo := env.dragInfo
+	dragInfo := ui.dragInfo
+	dragInfo.mousePos = &sdl.Point{X: x, Y: y}
 	if dragInfo.leftMouseDown && dragInfo.selected != nil {
-		dragInfo.selected.X = env.mousePos.X - dragInfo.clickOffset.X
-		dragInfo.selected.Y = env.mousePos.Y - dragInfo.clickOffset.Y
+		dragInfo.selected.X = dragInfo.mousePos.X - dragInfo.clickOffset.X
+		dragInfo.selected.Y = dragInfo.mousePos.Y - dragInfo.clickOffset.Y
 		env.w.redraw = true
 	}
 }
 
 func draw(env *environment) {
 	window := env.w
-	if env.w.redraw {
-		err := window.cleanUp()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	ui.update()
+	err := window.cleanUp()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-		err = drawUi(env)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	err = drawUi(env)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-		err = drawNodes(env)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		env.w.redraw = false
+	err = drawNodes(env)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	window.renderer.Present()
@@ -253,34 +276,82 @@ func (w *_SDLWindow) cleanUp() error {
 
 func drawUi(env *environment) error {
 	var padx, pady int32 = 5, 5
-	err := env.drawFita(padx, pady)
+	err := ui.drawFita(env.w, padx, pady)
 	if err != nil {
 		return err
 	}
 
 	machineType := env.machine.Type()
-	amount := 0
-	switch machineType {
-	case machine.ONE_STACK_MACHINE:
-		amount = 1
-	case machine.TWO_STACK_MACHINE:
-		amount = 2
-	default:
-	}
+	if machineType != machine.SIMPLE_MACHINE {
+		err = env.drawStacks(ui.stackHist, ui.indexComputation, padx, pady)
+		if err != nil {
+			return err
+		}
 
-	err = env.drawStacks(amount, padx, pady)
-	if err != nil {
-		return err
 	}
-
 	return nil
+}
+
+func (ui *uiComponents) update() {
+	for _, state := range ui.states {
+		state.color = BLACK
+	}
+
+	if ui.indexComputation == 0 {
+		initial := ui.bufferComputation.History[0]
+		initalDetails := initial.Details()
+		firstState := ui.states[initalDetails["CURRENT_STATE"]]
+		firstState.color = BLUE
+	}
+
+	ui.bufferInput = bufferMe(ui.input, ui.indexComputation)
+
+	record := ui.bufferComputation.History[ui.indexComputation]
+	details := record.Details()
+	nextSate := ui.states[details["NEXT_STATE"]]
+	if nextSate != nil {
+		if details["RESULT"] == machine.ACCEPTED {
+			nextSate.color = GREEN
+		} else {
+			nextSate.color = RED
+		}
+	}
+}
+
+func (ui *uiComponents) init(env *environment) {
+	dragInfo := &drag{
+		clickOffset:   &sdl.Point{X: 0, Y: 0},
+		selected:      nil,
+		leftMouseDown: false,
+		mousePos:      &sdl.Point{X: 0, Y: 0},
+	}
+
+	ui.input = env.input.Peek(env.input.Length())
+	bufferInput := bufferMe(ui.input, 0)
+	computation := machine.Execute(env.machine, env.input)
+
+	if env.machine.Type() == machine.TWO_STACK_MACHINE {
+		v, _ := env.machine.(*stackMachine.Machine)
+		ui.stackA, ui.stackB = v.StackHistory()
+	}
+
+	ui.states = machineStates(env.machine)
+	ui.dragInfo = dragInfo
+	ui.indexComputation = 0
+	ui.bufferComputation = *computation
+	ui.bufferInput = bufferInput
+
+	initial := ui.bufferComputation.History[0]
+	initalDetails := initial.Details()
+	firstState := ui.states[initalDetails["CURRENT_STATE"]]
+	firstState.color = BLUE
 }
 
 func drawNodes(env *environment) error {
 	var err error
 
-	for _, state := range env.states {
-		err = state.Draw(env.w, env.states)
+	for _, state := range ui.states {
+		err = state.Draw(env.w, ui.states)
 		if err != nil {
 			return err
 		}
@@ -289,42 +360,15 @@ func drawNodes(env *environment) error {
 	return nil
 }
 
-// func (env *environment) changeState(spriteName string) {
-// 	currentState := radio.activeMachine.CurrentState()
-// 	env.states[currentState].spriteName = spriteName
-
-// 	// para mudar a cor para o normal na proxima iteraçao
-// 	radio.lastState = currentState
-// }
-
-// // utilidade
-// func (env *environment) Reset() {
-// 	fmt.Println("Reseting...")
-// 	window := env.w
-// 	radio := env.radio
-// 	radio.activeMachine.Init()
-// 	window.redraw = true
-// 	radio.inExecution = false
-// 	lastState := env.states[radio.lastState]
-// 	initalState := env.states[radio.activeMachine.CurrentState()]
-// 	radio.input.Reset()
-// 	radio.inputToPrint = radio.input.Peek(TAMANHO_ESTRUTURAS)
-
-// 	if lastState != nil {
-// 		lastState.spriteName = BLACK_RING
-// 	}
-
-// 	if initalState != nil {
-// 		initalState.spriteName = BLUE_RING
-// 	}
-// }
-
-// func (env *environment) RunMachine() {
-// 	fmt.Println("Running...")
-// 	radio := env.radio
-// 	radio.lastMsg = machine.STATE_CHANGE
-// 	go machine.Execute(radio.activeMachine, radio.input, radio.channel)
-// }
+func bufferMe(input []string, index int) []string {
+	if len(input)-index < 1 {
+		return []string{input[len(input)-1]}
+	}
+	if len(input) < TAMANHO_ESTRUTURAS {
+		return input[index:]
+	}
+	return input[index : TAMANHO_ESTRUTURAS-1]
+}
 
 func (w *_SDLWindow) textSurface(text string, color sdl.Color) (*sdl.Surface, error) {
 	font := w.font
@@ -351,6 +395,20 @@ func Center(rec *sdl.Rect) sdl.Point {
 		X: rec.X + rec.W/2,
 		Y: rec.Y + rec.H/2,
 	}
+}
+
+func (st *stackHist) get(i int) ([]string, []string) {
+	var a []string
+	var b []string
+	if st.stackA != nil && i < len(st.stackA) {
+		a = st.stackA[i]
+	}
+
+	if st.stackB != nil && i < len(st.stackA) {
+		b = st.stackB[i]
+	}
+
+	return a, b
 }
 
 func drawAxs(env *environment) {

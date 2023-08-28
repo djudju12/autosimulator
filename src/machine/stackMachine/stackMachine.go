@@ -13,9 +13,11 @@ type (
 		machine.BaseMachine
 		Transitions map[string][]Transition `json:"transitions"`
 
-		_stackA       *collections.Stack
-		_stackB       *collections.Stack
-		_currentState string
+		_stackA        *collections.Stack
+		_stackB        *collections.Stack
+		_stackAHistory [][]string
+		_stackBHistory [][]string
+		_currentState  string
 	}
 
 	Transition struct {
@@ -31,7 +33,12 @@ type (
 func New() *Machine {
 	a := collections.NewStack()
 	b := collections.NewStack()
-	return &Machine{_stackA: a, _stackB: b}
+	return &Machine{
+		_stackA:        a,
+		_stackB:        b,
+		_stackAHistory: [][]string{},
+		_stackBHistory: [][]string{},
+	}
 }
 
 func (m *Machine) Init() {
@@ -40,6 +47,9 @@ func (m *Machine) Init() {
 	b := collections.NewStack()
 	m._stackA = a
 	m._stackB = b
+	m._stackAHistory = [][]string{}
+	m._stackBHistory = [][]string{}
+	m.backupStacks()
 }
 
 func (m *Machine) IsLastState() bool {
@@ -90,7 +100,6 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 	a := stackMachine._stackA
 	b := stackMachine._stackB
 
-	// TODO tenho que checar se esta no ultimo estado, não?
 	check := func(s *collections.Stack, read string, write string) bool {
 		if read != "&" {
 			if s.IsEmpty() {
@@ -111,7 +120,22 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 	stackMachine._currentState = t.ResultState
 
 	// checa os dois stacks
-	return check(a, t.ReadA, t.WriteA) || check(b, t.ReadB, t.WriteB)
+	if check(a, t.ReadA, t.WriteA) || check(b, t.ReadB, t.WriteB) {
+		v, _ := m.(*Machine)
+		v.backupStacks()
+		return true
+	}
+
+	return false
+}
+
+func (m *Machine) StackHistory() ([][]string, [][]string) {
+	return m._stackAHistory, m._stackBHistory
+}
+
+func (m *Machine) backupStacks() {
+	m._stackAHistory = append(m._stackAHistory, utils.Reserve(m._stackA.Peek(m._stackA.Length())))
+	m._stackBHistory = append(m._stackBHistory, utils.Reserve(m._stackB.Peek(m._stackB.Length())))
 }
 
 func (t *Transition) GetSymbol() string {

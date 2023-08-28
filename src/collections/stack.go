@@ -19,7 +19,7 @@ type (
 
 func NewStack() *Stack {
 	firstN := &node{"?", nil}
-	return &Stack{firstN, 0}
+	return &Stack{firstN, 1}
 }
 
 func (s *Stack) Length() int {
@@ -32,8 +32,13 @@ func (s *Stack) Pop() string {
 		fmt.Println("Pop() em uma pilha vazia!")
 		os.Exit(1)
 	}
+
+	if s.first.value == TAIL_FITA {
+		return TAIL_FITA
+	}
 	temp := s.first
 	s.first = s.first.next
+	s.len--
 	return temp.value
 }
 
@@ -42,7 +47,9 @@ func (s *Stack) Push(value string) {
 		value,
 		s.first,
 	}
+
 	s.first = &n
+	s.len++
 }
 
 func (s *Stack) IsEmpty() bool {

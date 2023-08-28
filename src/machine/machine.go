@@ -46,7 +46,7 @@ type (
 	}
 
 	Computation struct {
-		history []ComputationRecord
+		History []ComputationRecord
 	}
 
 	ComputationRecord struct {
@@ -112,12 +112,12 @@ func newComputationRecord(m Machine) *ComputationRecord {
 func newComputation(m Machine) *Computation {
 	record := newComputationRecord(m)
 	return &Computation{
-		history: []ComputationRecord{*record},
+		History: []ComputationRecord{*record},
 	}
 }
 
 func (c *Computation) setResult(result string) {
-	c.history[len(c.history)-1].result = result
+	c.History[len(c.History)-1].result = result
 }
 
 func (c *Computation) add(currentState string, trans Transition) {
@@ -127,18 +127,40 @@ func (c *Computation) add(currentState string, trans Transition) {
 		result:       RUNNING,
 	}
 
-	c.history = append(c.history, record)
+	c.History = append(c.History, record)
 }
 
 func (c *Computation) Stringfy() string {
 	var s string
-	for i, v := range c.history {
-		if v.transition == nil {
-			s += fmt.Sprintf("%d: %s, ( ) %s\n", i, v.currentState, v.result)
-		} else {
-			s += fmt.Sprintf("%d: %s -> %s, %s %s\n", i, v.currentState, v.transition.GetResultState(), v.transition.Stringfy(), v.result)
-		}
+	for i, v := range c.History {
+		s += fmt.Sprintf("%d: %s\n", i, v.Stringfy())
 	}
 
 	return s
+}
+
+func (cr *ComputationRecord) Stringfy() string {
+	var s string
+	if cr.transition == nil {
+		s += fmt.Sprintf("%s, ( ) %s", cr.currentState, cr.result)
+	} else {
+		s += fmt.Sprintf("%s -> %s, %s %s", cr.currentState, cr.transition.GetResultState(), cr.transition.Stringfy(), cr.result)
+	}
+
+	return s
+}
+
+func (cr *ComputationRecord) Details() map[string]string {
+	details := make(map[string]string)
+	details["CURRENT_STATE"] = cr.currentState
+	if cr.transition == nil {
+		details["NEXT_STATE"] = ""
+	} else {
+		details["NEXT_STATE"] = cr.transition.GetResultState()
+	}
+
+	details["TRANSITION"] = cr.Stringfy()
+	details["RESULT"] = cr.result
+
+	return details
 }
