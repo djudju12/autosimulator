@@ -18,7 +18,7 @@ const (
 
 const TAMANHO_ESTRUTURAS = 9
 
-func (env *environment) drawFita(headIndex int, padx, pady int32) error {
+func (env *environment) drawFita(padx, pady int32) error {
 	window := env.w
 
 	// Calculo da posicao inicial da fita/texto
@@ -40,9 +40,9 @@ func (env *environment) drawFita(headIndex int, padx, pady int32) error {
 	}
 
 	// Head da fita
-	arrowBase := fitaWidth / 2
-	arrowHeigth := arrowBase / 2
-	err = drawArrow(window.renderer, thickness, (x + fitaWidth/2), (y - pady), arrowBase, arrowHeigth, BLACK)
+	headBase := fitaWidth / 2
+	headHeigth := headBase / 2
+	err = drawArrow(window.renderer, thickness, (x + fitaWidth/2), (y - pady), headBase, headHeigth, BLACK)
 	if err != nil {
 		return err
 	}
@@ -54,6 +54,7 @@ func (env *environment) drawFita(headIndex int, padx, pady int32) error {
 		return err
 	}
 
+	// Para manter uma referencia dos ponteiros que vou precisar liberar
 	window.ui = append(window.ui, textTextures...)
 	return nil
 }
@@ -172,7 +173,6 @@ func drawManyRects(renderer *sdl.Renderer, thickness int32, amount, direction in
 		case UP:
 			x = rect.X
 			y = rect.Y + (rect.H * i)
-
 		case DOWN:
 			x = rect.X
 			y = rect.Y - (rect.H * i)

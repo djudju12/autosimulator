@@ -385,7 +385,7 @@ func draw(env *environment) {
 
 func drawUi(env *environment) error {
 	var padx, pady int32 = 5, 5
-	err := env.drawFita(0, padx, pady)
+	err := env.drawFita(padx, pady)
 	if err != nil {
 		return err
 	}
