@@ -1,7 +1,18 @@
 package graphics
 
 import (
+	"errors"
+	"fmt"
+
+	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
+)
+
+const (
+	RIGHT = iota
+	LEFT  = iota
+	UP    = iota
+	DOWN  = iota
 )
 
 const TAMANHO_ESTRUTURAS = 9
@@ -171,5 +182,63 @@ func (env *environment) drawStack(index, padx, pady int32) error {
 
 	window.renderer.Copy(stackTexture, nil, stackRect)
 	window.ui = append(window.ui, textures...)
+	return nil
+}
+
+func DrawRect(renderer *sdl.Renderer, thickness int32, rect sdl.Rect, color sdl.Color) error {
+	// RectangleColor(renderer *sdl.Renderer, x1, y1, x2, y2 int32, color sdl.Color) bool {
+	var i, x1, y1, x2, y2 int32
+	var ok bool
+	for i = 0; i < thickness; i++ {
+		x1 = rect.X + i
+		y1 = rect.Y + i
+		x2 = x1 + rect.W
+		y2 = y1 + rect.H
+		if ok = gfx.RectangleColor(renderer, x1, y1, x2, y2, color); !ok {
+			return fmt.Errorf("não foi possivel desenhar o retangulo: x1: %d, y1: %d, x2: %d, y2: %d", x1, y1, x2, y2)
+		}
+	}
+
+	return nil
+}
+
+func drawManyRects(renderer *sdl.Renderer, thickness, amount, direction int, rect sdl.Rect, color sdl.Color) error {
+	thick32 := int32(thickness)
+
+	var newRect sdl.Rect
+	var x, y int32
+	var err error
+	for i := 0; i < amount; i++ {
+		switch direction {
+		case UP:
+			x = rect.X
+			y = rect.Y + rect.H
+
+		case DOWN:
+			x = rect.X
+			y = rect.Y - rect.H
+		case RIGHT:
+			x = rect.X + rect.W
+			y = rect.Y
+		case LEFT:
+			x = rect.X - rect.W
+			y = rect.Y
+
+		default:
+			return errors.New("Direção invalida. drawManyRects()")
+		}
+
+		newRect = sdl.Rect{
+			X: x,
+			Y: y,
+			W: rect.W,
+			H: rect.H,
+		}
+
+		if err = DrawRect(renderer, thick32, newRect, color); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
-	"github.com/veandco/go-sdl2/ttf"
 )
 
 type (
@@ -51,38 +50,53 @@ func (s *graphicalState) Center() sdl.Point {
 func (s *graphicalState) Draw(w *_SDLWindow, states map[string]*graphicalState) error {
 	renderer := w.renderer
 	words := w.cacheWords
-	sprites := w.cacheSprites
 
-	ringTexture, err := s.drawRing(renderer, sprites)
+	outerRadius := s.Rect.W / 2
+	innerRadius := (96 * outerRadius) / 100 // % do outerRadius
+	err := s.drawRing(renderer, s.Rect.W/2, innerRadius, BLACK)
 	if err != nil {
 		return err
 	}
-	//TODO: what i gonna do with this fontRating thing that i created?
-	textTexture, err := s.drawText(w, words)
-	if err != nil {
-		return err
-	}
+
+	var lineThickness int32 = 2
 	if len(s.statesKeys) != 0 {
-		err = s.drawLines(renderer, w.font, states, 2)
+		err = s.drawLines(renderer, states, lineThickness)
 		if err != nil {
 			return err
 		}
 	}
 
-	w.ui = append(w.ui, ringTexture, textTexture)
+	textTexture, err := s.drawText(w, words)
+	if err != nil {
+		return err
+	}
+
+	w.ui = append(w.ui, textTexture)
+	// w.ui = append(w.ui, ringTexture, textTexture)
 	return nil
 }
 
-func (s *graphicalState) drawRing(renderer *sdl.Renderer, sprites map[string]*sdl.Surface) (*sdl.Texture, error) {
-	// TODO: GLOBAL
-	imgSurface := sprites[s.spriteName]
-	texture, err := renderer.CreateTextureFromSurface(imgSurface)
-	if err != nil {
-		return nil, err
+// func (s *graphicalState) drawRing(renderer *sdl.Renderer, sprites map[string]*sdl.Surface) (*sdl.Texture, error) {
+// 	// TODO: GLOBAL
+// 	imgSurface := sprites[s.spriteName]
+// 	texture, err := renderer.CreateTextureFromSurface(imgSurface)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	renderer.Copy(texture, nil, s.Rect)
+// 	return texture, nil
+// }
+
+func (s *graphicalState) drawRing(renderer *sdl.Renderer, r1, r2 int32, color sdl.Color) error {
+
+	var i int32
+	center := Center(s.Rect)
+	for i = 0; i < r1-r2; i++ {
+		gfx.AACircleColor(renderer, center.X, center.Y, (r1 - i), BLACK)
 	}
 
-	renderer.Copy(texture, nil, s.Rect)
-	return texture, nil
+	return nil
 }
 
 func (s *graphicalState) drawText(window *_SDLWindow, words map[string]*sdl.Surface) (*sdl.Texture, error) {
@@ -116,7 +130,7 @@ func (s *graphicalState) drawText(window *_SDLWindow, words map[string]*sdl.Surf
 	return texture, nil
 }
 
-func (s *graphicalState) drawLines(renderer *sdl.Renderer, font *ttf.Font, states map[string]*graphicalState, thickness int32) error {
+func (s *graphicalState) drawLines(renderer *sdl.Renderer, states map[string]*graphicalState, thickness int32) error {
 	// Desenha os estados cujo o estado atual aponta
 	var err error
 	for _, next := range s.statesKeys {

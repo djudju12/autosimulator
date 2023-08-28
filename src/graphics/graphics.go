@@ -364,6 +364,14 @@ func draw(env *environment) {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+		testerect := sdl.Rect{
+			X: WITDH / 2,
+			Y: HEIGTH / 2,
+			H: 40,
+			W: 40,
+		}
+
+		drawManyRects(window.renderer, 2, 2, UP, testerect, BLACK)
 
 		err = drawUi(env)
 		if err != nil {

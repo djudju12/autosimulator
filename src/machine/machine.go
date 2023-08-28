@@ -66,11 +66,11 @@ func Execute(m Machine, fita *collections.Fita, channel chan int) bool {
 		// Se o seguinte for o final da fita
 		// retorna par achecar se esta no ultimo
 		// estado. Apenas uma mundaça visual!
-		if fita.Peek(1)[0] == TAIL_FITA {
+		channel <- STATE_CHANGE
+
+		if s == TAIL_FITA {
 			break
 		}
-
-		channel <- STATE_CHANGE
 	}
 
 	isAccepted = m.IsLastState()
