@@ -66,3 +66,18 @@ func DebugFita(fita []string, index int) {
 	fmt.Println()
 
 }
+
+func Reserve(arr []string) []string {
+	if len(arr) == 0 {
+		return []string{}
+	}
+
+	result := make([]string, len(arr))
+	j := 0
+	for i := (len(arr) - 1); i >= 0; i-- {
+		result[j] = arr[i]
+		j++
+	}
+
+	return result
+}

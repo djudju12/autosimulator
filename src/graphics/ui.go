@@ -1,6 +1,7 @@
 package graphics
 
 import (
+	"autosimulator/src/utils"
 	"errors"
 	"fmt"
 
@@ -18,91 +19,42 @@ const (
 const TAMANHO_ESTRUTURAS = 9
 
 func (env *environment) drawFita(headIndex int, padx, pady int32) error {
-	fitaAparente := env.radio.inputToPrint
 	window := env.w
 
-	textures := []*sdl.Texture{}
+	// Calculo da posicao inicial da fita/texto
+	var fitaWidth, thickness int32 = 32, 2
+	x := padx
+	y := (HEIGTH - fitaWidth) - pady
 
-	// body
-	fitaTexture, err := window.renderer.CreateTextureFromSurface(window.cacheSprites[FITA])
-	textures = append(textures, fitaTexture)
-	if err != nil {
-		return err
-	}
-
-	_, _, fitaWidth, fitaHeight, err := fitaTexture.Query()
-	if err != nil {
-		return err
-	}
-
-	/// head
-	fitaHeadTexture, err := window.renderer.CreateTextureFromSurface(window.cacheSprites[FITA_HEAD])
-	textures = append(textures, fitaHeadTexture)
-	if err != nil {
-		return err
-	}
-	_, _, headWidth, headHeigth, err := fitaHeadTexture.Query()
-	if err != nil {
-		return err
-	}
-
-	// TODO: Ajeitar o tamanho das imagens
-	headWidth /= 2
-	headHeigth /= 2
-	fitaWidth /= 2
-	fitaHeight /= 2
-
-	fitaRec := &sdl.Rect{
-		X: 0 + padx,
-		Y: (HEIGTH - fitaHeight) - pady,
+	// Rec representa o primeiro quadrado da fita
+	fitaRec := sdl.Rect{
+		X: x,
+		Y: y,
 		W: fitaWidth,
-		H: fitaHeight,
+		H: fitaWidth, // É um quadrado
 	}
 
-	headRec := &sdl.Rect{
-		X: fitaRec.X,
-		// TODO: a mesma gambiarra do anterior (que na verdade é o proximo)
-		Y: fitaRec.Y - (headHeigth - 2) - pady,
-		W: headWidth,
-		H: headHeigth,
+	err := drawManyRects(window.renderer, thickness, int(TAMANHO_ESTRUTURAS), RIGHT, fitaRec, BLACK)
+	if err != nil {
+		return err
 	}
 
-	window.renderer.Copy(fitaTexture, nil, fitaRec)
-	window.renderer.Copy(fitaHeadTexture, nil, headRec)
-
-	var textSurface *sdl.Surface
-	var textTexture *sdl.Texture
-	var textRect *sdl.Rect
-	for i, symbol := range fitaAparente {
-		textSurface, err = window.textSurface(symbol, BLACK)
-		if err != nil {
-			return err
-		}
-
-		textTexture, err = window.renderer.CreateTextureFromSurface(textSurface)
-		if err != nil {
-			return err
-		}
-
-		_, _, fontW, fontH, err := textTexture.Query()
-		if err != nil {
-			return err
-		}
-
-		textRect = &sdl.Rect{
-			// (headWidth-2) pois as paredes do quadrados contam 1 pixel cada
-			// TODO: Isso é uma gambiarra.
-			X: fitaRec.X + fontW/2 + ((headWidth - 2) * int32(i)),
-			Y: fitaRec.Y,
-			W: fontW,
-			H: fontH,
-		}
-
-		textures = append(textures, textTexture)
-		window.renderer.Copy(textTexture, nil, textRect)
+	// Head da fita
+	arrowBase := fitaWidth / 2
+	arrowHeigth := arrowBase / 2
+	err = drawArrow(window.renderer, thickness, (x + fitaWidth/2), (y - pady), arrowBase, arrowHeigth, BLACK)
+	if err != nil {
+		return err
 	}
 
-	window.ui = append(window.ui, textures...)
+	// Texto
+	bufferFita := env.radio.inputToPrint
+	textTextures, err := drawText(window, bufferFita, fitaWidth, fitaRec.X, fitaRec.Y, RIGHT)
+	if err != nil {
+		return err
+	}
+
+	window.ui = append(window.ui, textTextures...)
 	return nil
 }
 
@@ -121,71 +73,136 @@ func (env *environment) drawStacks(amount int, padx, pady int32) error {
 func (env *environment) drawStack(index, padx, pady int32) error {
 	window := env.w
 	machine := env.radio.activeMachine
-	var textures []*sdl.Texture
 
-	stackTexture, err := window.renderer.CreateTextureFromSurface(window.cacheSprites[STACK])
-	if err != nil {
-		return err
-	}
+	// Calculo da posicao inicial do stack/texto
+	var stackWidth, thickness int32 = 32, 2
+	x := WITDH - (padx+stackWidth)*(index+1)
+	y := HEIGTH - (pady + stackWidth*TAMANHO_ESTRUTURAS)
 
-	textures = append(textures, stackTexture)
-
-	_, _, stackWidth, stackHeigth, err := stackTexture.Query()
-	if err != nil {
-		return err
-	}
-
-	stackWidth /= 2
-	stackHeigth /= 2
-
-	stackRect := &sdl.Rect{
-		X: WITDH - (padx+stackWidth)*(index+1),
-		Y: HEIGTH - (pady + stackHeigth),
+	// Esse rec represeta o primeiro quadrado do stack
+	oneStackCointainer := sdl.Rect{
+		X: x,
+		Y: y,
 		W: stackWidth,
-		H: stackHeigth,
+		H: stackWidth, // É um quadrado
 	}
 
+	// Retangulos
+	err := drawManyRects(window.renderer, thickness, int(TAMANHO_ESTRUTURAS), UP, oneStackCointainer, BLACK)
+	if err != nil {
+		return err
+	}
+
+	// Textos
 	stack := machine.Stacks()[index]
-	stackAparente := stack.Peek(TAMANHO_ESTRUTURAS)
-	var textSurface *sdl.Surface
-	var textTexture *sdl.Texture
-	var textRect *sdl.Rect
-	for i, s := range stackAparente {
-
-		textSurface, err = window.textSurface(s, BLACK)
-		if err != nil {
-			return err
-		}
-
-		textTexture, err = window.renderer.CreateTextureFromSurface(textSurface)
-		if err != nil {
-			return err
-		}
-
-		_, _, fontW, fontH, err := textTexture.Query()
-		if err != nil {
-			return err
-		}
-
-		textRect = &sdl.Rect{
-			// (headWidth-2) pois as paredes do quadrados contam 1 pixel cada
-			// TODO: Isso é uma gambiarra.
-			X: stackRect.X + fontW/2,
-			Y: stackRect.Y + stackHeigth - ((stackWidth - 2) * int32((len(stackAparente) - i))),
-			W: fontW,
-			H: fontH,
-		}
-
-		textures = append(textures, textTexture)
-		window.renderer.Copy(textTexture, nil, textRect)
+	stackAparente := utils.Reserve(stack.Peek(TAMANHO_ESTRUTURAS))
+	firstCharX := x
+	firstCharY := y + (stackWidth * (TAMANHO_ESTRUTURAS - 1))
+	textures, err := drawText(window, stackAparente, stackWidth, firstCharX, firstCharY, UP)
+	if err != nil {
+		return err
 	}
 
-	window.renderer.Copy(stackTexture, nil, stackRect)
+	// Para manter uma referencia dos ponteiros que vou precisar liberar
 	window.ui = append(window.ui, textures...)
 	return nil
 }
 
-func DrawRect(renderer *sdl.Renderer, thickness int32, rect sdl.Rect, color sdl.Color) error {
+func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction int) ([]*sdl.Texture, error) {
+	var textSurface *sdl.Surface
+	var textTexture *sdl.Texture
+	var textTextures []*sdl.Texture
+	var x, y int32
+	var err error
+	for i, s := range text {
+		// Essa função checa se há a palavra no cache antes de cirar a surface
+		// O cache esta armazenado na SDLWindow
+		textSurface, err = window.textSurface(s, BLACK)
+		if err != nil {
+			return textTextures, err
+		}
+
+		textTexture, err = window.renderer.CreateTextureFromSurface(textSurface)
+		if err != nil {
+			return textTextures, err
+		}
+
+		_, _, fontW, fontH, err := textTexture.Query()
+		if err != nil {
+			return textTextures, err
+		}
+
+		switch direction {
+		case UP:
+			x = x1 + fontW/2
+			y = y1 - (space * int32(i))
+		case DOWN:
+			x = x1 + fontW/2
+			y = y1 + (space * int32(i))
+		case RIGHT:
+			x = x1 + (space * int32(i)) + fontW/2
+			y = y1
+		case LEFT:
+			x = x1 - (space * int32(i)) - fontW/2
+			y = y1
+		default:
+			return nil, errors.New("direção invalida. drawManyRects()")
+		}
+
+		textTextures = append(textTextures, textTexture)
+		window.renderer.Copy(textTexture, nil, &sdl.Rect{
+			X: x,
+			Y: y,
+			W: fontW,
+			H: fontH,
+		})
+	}
+
+	return textTextures, nil
+}
+
+func drawManyRects(renderer *sdl.Renderer, thickness int32, amount, direction int, rect sdl.Rect, color sdl.Color) error {
+	thick32 := int32(thickness)
+
+	var newRect sdl.Rect
+	var x, y, i int32
+	var err error
+	for i = 0; i < int32(amount); i++ {
+		switch direction {
+		case UP:
+			x = rect.X
+			y = rect.Y + (rect.H * i)
+
+		case DOWN:
+			x = rect.X
+			y = rect.Y - (rect.H * i)
+		case RIGHT:
+			x = rect.X + (rect.W * i)
+			y = rect.Y
+		case LEFT:
+			x = rect.X - (rect.W * i)
+			y = rect.Y
+
+		default:
+			return errors.New("direção invalida. drawManyRects()")
+		}
+
+		newRect = sdl.Rect{
+			X: x,
+			Y: y,
+			W: rect.W,
+			H: rect.H,
+		}
+
+		if err = drawRect(renderer, thick32, newRect, color); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func drawRect(renderer *sdl.Renderer, thickness int32, rect sdl.Rect, color sdl.Color) error {
 	// RectangleColor(renderer *sdl.Renderer, x1, y1, x2, y2 int32, color sdl.Color) bool {
 	var i, x1, y1, x2, y2 int32
 	var ok bool
@@ -202,42 +219,17 @@ func DrawRect(renderer *sdl.Renderer, thickness int32, rect sdl.Rect, color sdl.
 	return nil
 }
 
-func drawManyRects(renderer *sdl.Renderer, thickness, amount, direction int, rect sdl.Rect, color sdl.Color) error {
-	thick32 := int32(thickness)
+func drawArrow(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color) error {
+	var ok bool
+	errText := "nao foi possível desenhar a flecha"
+	ok = gfx.ThickLineColor(renderer, x, y, x-base/2, y-heigth, thickness, color)
+	if !ok {
+		return errors.New(errText)
+	}
 
-	var newRect sdl.Rect
-	var x, y int32
-	var err error
-	for i := 0; i < amount; i++ {
-		switch direction {
-		case UP:
-			x = rect.X
-			y = rect.Y + rect.H
-
-		case DOWN:
-			x = rect.X
-			y = rect.Y - rect.H
-		case RIGHT:
-			x = rect.X + rect.W
-			y = rect.Y
-		case LEFT:
-			x = rect.X - rect.W
-			y = rect.Y
-
-		default:
-			return errors.New("Direção invalida. drawManyRects()")
-		}
-
-		newRect = sdl.Rect{
-			X: x,
-			Y: y,
-			W: rect.W,
-			H: rect.H,
-		}
-
-		if err = DrawRect(renderer, thick32, newRect, color); err != nil {
-			return err
-		}
+	ok = gfx.ThickLineColor(renderer, x, y, x+base/2, y-heigth, thickness, color)
+	if !ok {
+		return errors.New(errText)
 	}
 
 	return nil
