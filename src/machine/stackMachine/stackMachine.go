@@ -54,7 +54,11 @@ func (m *Machine) Type() int {
 	return machine.TWO_STACK_MACHINE
 }
 
-func (m *Machine) getTransitions(state string) []machine.Transition {
+func (m *Machine) GetStates() []string {
+	return m.States
+}
+
+func (m *Machine) GetTransitions(state string) []machine.Transition {
 	transitions := m.Transitions[state]
 	result := make([]machine.Transition, len(transitions))
 
@@ -68,7 +72,7 @@ func (m *Machine) getTransitions(state string) []machine.Transition {
 }
 
 func (m *Machine) PossibleTransitions() []machine.Transition {
-	return m.getTransitions(m._currentState)
+	return m.GetTransitions(m._currentState)
 }
 
 func (m *Machine) Stacks() []*collections.Stack {

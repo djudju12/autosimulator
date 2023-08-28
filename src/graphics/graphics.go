@@ -8,7 +8,6 @@ import (
 	"runtime"
 
 	"github.com/veandco/go-sdl2/gfx"
-	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
@@ -20,48 +19,25 @@ const (
 	FONT_ZIE      = 24
 	FPS_DEFAULT   = 60
 	FPS_EXECUTING = 1
-	// TODO: ta se tornando um incrivel pesado essas variaveis
-	// Talvez um map ou uma sprite sheet
-	BLACK_RING      = "BLACK_RING"
-	BLACK_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/ring.png"
-
-	RED_RING      = "RED_RING"
-	RED_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/red_ring.png"
-
-	GREEN_RING      = "GREEN_RING"
-	GREEN_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/green_ring.png"
-
-	BLUE_RING      = "BLUE_RING"
-	BLUE_RING_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/blue_ring.png"
-
-	FITA_HEAD      = "FITA_HEAD"
-	FITA_HEAD_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita_head.png"
-
-	FITA      = "FITA"
-	FITA_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/fita.png"
-
-	STACK      = "STACK"
-	STACK_PATH = "/home/jonathan/programacao/autosimulator/src/graphics/assets/stack.png"
 )
 
 type (
 	environment struct {
 		w        *_SDLWindow
 		dragInfo *drag
-		radio    *machineChannel
 		mousePos *sdl.Point
+		machine  machine.Machine
+		input    *collections.Fita
 		states   map[string]*graphicalState
 	}
 
 	_SDLWindow struct {
-		window       *sdl.Window
-		renderer     *sdl.Renderer
-		font         *ttf.Font
-		cacheWords   map[string]*sdl.Surface
-		cacheSprites map[string]*sdl.Surface
-		ui           []*sdl.Texture
-		terminate    bool
-		redraw       bool
+		window     *sdl.Window
+		renderer   *sdl.Renderer
+		font       *ttf.Font
+		cacheWords map[string]*sdl.Surface
+		terminate  bool
+		redraw     bool
 	}
 
 	drag struct {
@@ -69,26 +45,13 @@ type (
 		selected      *graphicalState
 		leftMouseDown bool
 	}
-
-	machineChannel struct {
-		activeMachine machine.Machine
-		input         *collections.Fita
-		inputToPrint  []string
-		channel       chan int
-		lastMsg       int
-		inExecution   bool
-		lastState     string
-	}
 )
 
 func Mainloop(env *environment) {
 	window := env.w
+	runtime.LockOSThread() // sdl2 precisa rodar na main thread.
 
-	// sdl2 precisa rodar na main thread.
-	runtime.LockOSThread()
-	env.Reset()
 	for !window.terminate {
-		talk(env)
 		pollEvent(env)
 		draw(env)
 		sdl.Delay(1000 / FPS_DEFAULT)
@@ -104,55 +67,10 @@ func PopulateEnvironment(window *_SDLWindow, activeMachine machine.Machine) *env
 		leftMouseDown: false,
 	}
 
-	radio := &machineChannel{
-		channel:       make(chan int),
-		lastMsg:       machine.STATE_NOT_CHANGE,
-		inExecution:   false,
-		activeMachine: activeMachine,
-		input:         collections.NewFita(),
-		lastState:     activeMachine.CurrentState(),
-	}
-
-	checkError := func(err error, name string) {
-		if err != nil {
-			fmt.Printf("erro ao carregar %s: %v\n", err, name)
-			os.Exit(1)
-		}
-	}
-
-	fita, err := img.Load(FITA_PATH)
-	checkError(err, FITA)
-
-	fitaHead, err := img.Load(FITA_HEAD_PATH)
-	checkError(err, FITA_HEAD_PATH)
-
-	blackRing, err := img.Load(BLACK_RING_PATH)
-	checkError(err, BLACK_RING)
-
-	redRing, err := img.Load(RED_RING_PATH)
-	checkError(err, RED_RING)
-
-	greenRing, err := img.Load(GREEN_RING_PATH)
-	checkError(err, GREEN_RING)
-
-	blueRing, err := img.Load(BLUE_RING_PATH)
-	checkError(err, GREEN_RING)
-
-	stack, err := img.Load(STACK_PATH)
-	checkError(err, STACK)
-
-	window.cacheSprites[BLACK_RING] = blackRing
-	window.cacheSprites[RED_RING] = redRing
-	window.cacheSprites[BLUE_RING] = blueRing
-	window.cacheSprites[GREEN_RING] = greenRing
-	window.cacheSprites[FITA] = fita
-	window.cacheSprites[FITA_HEAD] = fitaHead
-	window.cacheSprites[STACK] = stack
-
 	env := &environment{
 		w:        window,
 		dragInfo: dragInfo,
-		radio:    radio,
+		machine:  activeMachine,
 		states:   machineStates(activeMachine),
 	}
 
@@ -186,17 +104,19 @@ func NewSDLWindow() *_SDLWindow {
 		panic(err)
 	}
 
-	cacheSprites := make(map[string]*sdl.Surface)
 	cacheWords := make(map[string]*sdl.Surface)
 
 	return &_SDLWindow{window: window,
-		renderer:     renderer,
-		font:         font,
-		terminate:    false,
-		cacheWords:   cacheWords,
-		cacheSprites: cacheSprites,
-		redraw:       true,
+		renderer:   renderer,
+		font:       font,
+		terminate:  false,
+		cacheWords: cacheWords,
+		redraw:     true,
 	}
+}
+
+func (env *environment) Input(fita *collections.Fita) {
+	env.input = fita
 }
 
 func (env *environment) Destroy() {
@@ -205,61 +125,10 @@ func (env *environment) Destroy() {
 	env.w.window.Destroy()
 	env.w.renderer.Destroy()
 	env.w.font.Close()
-	close(env.radio.channel)
-	_ = free(env.w.ui)
-
-	for _, v := range env.w.cacheSprites {
-		v.Free()
-	}
 
 	for _, v := range env.w.cacheWords {
 		v.Free()
 	}
-}
-
-func talk(env *environment) {
-	radio := env.radio
-	if radio.lastMsg == machine.STATE_NOT_CHANGE {
-		radio.inExecution = false
-		return
-	}
-
-	radio.inExecution = true
-	env.w.redraw = true
-	radio.inputToPrint = radio.input.Peek(TAMANHO_ESTRUTURAS)
-	radio.lastMsg = <-radio.channel
-
-	if radio.lastState != "" {
-		env.states[radio.lastState].spriteName = BLACK_RING
-	}
-
-	// window := env.w
-	msg := radio.lastMsg
-	switch msg {
-	case machine.STATE_CHANGE:
-		env.changeState(RED_RING)
-
-	case machine.STATE_INPUT_ACCEPTED:
-		env.changeState(GREEN_RING)
-		radio.lastMsg = machine.STATE_NOT_CHANGE
-
-	case machine.STATE_INPUT_REJECTED:
-		env.changeState(RED_RING)
-		radio.lastMsg = machine.STATE_NOT_CHANGE
-
-	default:
-	}
-
-}
-
-func (env *environment) changeState(spriteName string) {
-	radio := env.radio
-
-	currentState := radio.activeMachine.CurrentState()
-	env.states[currentState].spriteName = spriteName
-
-	// para mudar a cor para o normal na proxima iteraçao
-	radio.lastState = currentState
 }
 
 func pollEvent(env *environment) {
@@ -288,19 +157,11 @@ func pollEvent(env *environment) {
 }
 
 func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
-	radio := env.radio
 	switch event.Keysym.Sym {
 	case sdl.K_RETURN:
-		if !radio.inExecution && event.Type == sdl.KEYDOWN {
-			env.RunMachine()
-		}
-
 	case sdl.K_r:
-		if !radio.inExecution && event.Type == sdl.KEYDOWN {
-			env.Reset()
-		}
+		// env.Reset()
 	}
-
 }
 
 func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
@@ -351,14 +212,6 @@ func handleMouseMotionEvent(env *environment) {
 func draw(env *environment) {
 	window := env.w
 	if env.w.redraw {
-		if env.radio.inExecution {
-			sdl.Delay(1000 / FPS_EXECUTING)
-		}
-
-		if len(window.ui) != 0 {
-			free(window.ui)
-		}
-
 		err := window.cleanUp()
 		if err != nil {
 			fmt.Println(err)
@@ -383,6 +236,21 @@ func draw(env *environment) {
 	window.renderer.Present()
 }
 
+func (w *_SDLWindow) cleanUp() error {
+
+	err := w.renderer.SetDrawColor(255, 255, 255, 255)
+	if err != nil {
+		return err
+	}
+
+	err = w.renderer.Clear()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func drawUi(env *environment) error {
 	var padx, pady int32 = 5, 5
 	err := env.drawFita(padx, pady)
@@ -390,7 +258,7 @@ func drawUi(env *environment) error {
 		return err
 	}
 
-	machineType := env.radio.activeMachine.Type()
+	machineType := env.machine.Type()
 	amount := 0
 	switch machineType {
 	case machine.ONE_STACK_MACHINE:
@@ -421,54 +289,42 @@ func drawNodes(env *environment) error {
 	return nil
 }
 
-func (w *_SDLWindow) cleanUp() error {
+// func (env *environment) changeState(spriteName string) {
+// 	currentState := radio.activeMachine.CurrentState()
+// 	env.states[currentState].spriteName = spriteName
 
-	err := w.renderer.SetDrawColor(255, 255, 255, 255)
-	if err != nil {
-		return err
-	}
+// 	// para mudar a cor para o normal na proxima iteraçao
+// 	radio.lastState = currentState
+// }
 
-	err = w.renderer.Clear()
-	if err != nil {
-		return err
-	}
+// // utilidade
+// func (env *environment) Reset() {
+// 	fmt.Println("Reseting...")
+// 	window := env.w
+// 	radio := env.radio
+// 	radio.activeMachine.Init()
+// 	window.redraw = true
+// 	radio.inExecution = false
+// 	lastState := env.states[radio.lastState]
+// 	initalState := env.states[radio.activeMachine.CurrentState()]
+// 	radio.input.Reset()
+// 	radio.inputToPrint = radio.input.Peek(TAMANHO_ESTRUTURAS)
 
-	return nil
-}
+// 	if lastState != nil {
+// 		lastState.spriteName = BLACK_RING
+// 	}
 
-// utilidade
-func (env *environment) Reset() {
-	fmt.Println("Reseting...")
-	window := env.w
-	radio := env.radio
-	radio.activeMachine.Init()
-	window.redraw = true
-	radio.inExecution = false
-	lastState := env.states[radio.lastState]
-	initalState := env.states[radio.activeMachine.CurrentState()]
-	radio.input.Reset()
-	radio.inputToPrint = radio.input.Peek(TAMANHO_ESTRUTURAS)
+// 	if initalState != nil {
+// 		initalState.spriteName = BLUE_RING
+// 	}
+// }
 
-	if lastState != nil {
-		lastState.spriteName = BLACK_RING
-	}
-
-	if initalState != nil {
-		initalState.spriteName = BLUE_RING
-	}
-}
-
-func (env *environment) RunMachine() {
-	fmt.Println("Running...")
-	radio := env.radio
-	radio.lastMsg = machine.STATE_CHANGE
-	go machine.Execute(radio.activeMachine, radio.input, radio.channel)
-}
-
-func (env *environment) Input(fita *collections.Fita) {
-	env.radio.input = fita
-	fita.Write(machine.TAIL_FITA)
-}
+// func (env *environment) RunMachine() {
+// 	fmt.Println("Running...")
+// 	radio := env.radio
+// 	radio.lastMsg = machine.STATE_CHANGE
+// 	go machine.Execute(radio.activeMachine, radio.input, radio.channel)
+// }
 
 func (w *_SDLWindow) textSurface(text string, color sdl.Color) (*sdl.Surface, error) {
 	font := w.font
@@ -495,18 +351,6 @@ func Center(rec *sdl.Rect) sdl.Point {
 		X: rec.X + rec.W/2,
 		Y: rec.Y + rec.H/2,
 	}
-}
-
-func free(textures []*sdl.Texture) error {
-	var err error
-	for _, t := range textures {
-		err = t.Destroy()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func drawAxs(env *environment) {

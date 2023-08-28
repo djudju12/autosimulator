@@ -33,13 +33,12 @@ var (
 	WHITE = sdl.Color{R: 255, G: 255, B: 255, A: 255}
 )
 
-func NewState(rect *sdl.Rect, state string, colour sdl.Color, statesKeys []string) *graphicalState {
+func NewState(rect *sdl.Rect, state string, color sdl.Color, statesKeys []string) *graphicalState {
 	return &graphicalState{
 		Rect:       rect,
 		state:      state,
-		color:      colour,
+		color:      color,
 		statesKeys: statesKeys,
-		spriteName: BLACK_RING,
 	}
 }
 
@@ -66,27 +65,13 @@ func (s *graphicalState) Draw(w *_SDLWindow, states map[string]*graphicalState) 
 		}
 	}
 
-	textTexture, err := s.drawText(w, words)
+	err = s.drawText(w, words)
 	if err != nil {
 		return err
 	}
 
-	w.ui = append(w.ui, textTexture)
-	// w.ui = append(w.ui, ringTexture, textTexture)
 	return nil
 }
-
-// func (s *graphicalState) drawRing(renderer *sdl.Renderer, sprites map[string]*sdl.Surface) (*sdl.Texture, error) {
-// 	// TODO: GLOBAL
-// 	imgSurface := sprites[s.spriteName]
-// 	texture, err := renderer.CreateTextureFromSurface(imgSurface)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	renderer.Copy(texture, nil, s.Rect)
-// 	return texture, nil
-// }
 
 func (s *graphicalState) drawRing(renderer *sdl.Renderer, r1, r2 int32, color sdl.Color) error {
 
@@ -99,23 +84,23 @@ func (s *graphicalState) drawRing(renderer *sdl.Renderer, r1, r2 int32, color sd
 	return nil
 }
 
-func (s *graphicalState) drawText(window *_SDLWindow, words map[string]*sdl.Surface) (*sdl.Texture, error) {
+func (s *graphicalState) drawText(window *_SDLWindow, words map[string]*sdl.Surface) error {
 	renderer := window.renderer
 	// var fontRating int32 = 2
 
 	// verifica o cache de words
 	surface, err := window.textSurface(s.state, s.color)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	texture, err := renderer.CreateTextureFromSurface(surface)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	_, _, fontW, fontH, err := texture.Query()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	centerS := s.Center()
@@ -127,7 +112,7 @@ func (s *graphicalState) drawText(window *_SDLWindow, words map[string]*sdl.Surf
 	}
 
 	renderer.Copy(texture, nil, textRect)
-	return texture, nil
+	return nil
 }
 
 func (s *graphicalState) drawLines(renderer *sdl.Renderer, states map[string]*graphicalState, thickness int32) error {

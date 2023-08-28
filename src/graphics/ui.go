@@ -48,14 +48,13 @@ func (env *environment) drawFita(padx, pady int32) error {
 	}
 
 	// Texto
-	bufferFita := env.radio.inputToPrint
-	textTextures, err := drawText(window, bufferFita, fitaWidth, fitaRec.X, fitaRec.Y, RIGHT)
+	bufferFita := env.input.Peek(TAMANHO_ESTRUTURAS)
+	err = drawText(window, bufferFita, fitaWidth, fitaRec.X, fitaRec.Y, RIGHT)
 	if err != nil {
 		return err
 	}
 
 	// Para manter uma referencia dos ponteiros que vou precisar liberar
-	window.ui = append(window.ui, textTextures...)
 	return nil
 }
 
@@ -73,7 +72,7 @@ func (env *environment) drawStacks(amount int, padx, pady int32) error {
 
 func (env *environment) drawStack(index, padx, pady int32) error {
 	window := env.w
-	machine := env.radio.activeMachine
+	machine := env.machine
 
 	// Calculo da posicao inicial do stack/texto
 	var stackWidth, thickness int32 = 32, 2
@@ -99,20 +98,18 @@ func (env *environment) drawStack(index, padx, pady int32) error {
 	stackAparente := utils.Reserve(stack.Peek(TAMANHO_ESTRUTURAS))
 	firstCharX := x
 	firstCharY := y + (stackWidth * (TAMANHO_ESTRUTURAS - 1))
-	textures, err := drawText(window, stackAparente, stackWidth, firstCharX, firstCharY, UP)
+	err = drawText(window, stackAparente, stackWidth, firstCharX, firstCharY, UP)
 	if err != nil {
 		return err
 	}
 
 	// Para manter uma referencia dos ponteiros que vou precisar liberar
-	window.ui = append(window.ui, textures...)
 	return nil
 }
 
-func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction int) ([]*sdl.Texture, error) {
+func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction int) error {
 	var textSurface *sdl.Surface
 	var textTexture *sdl.Texture
-	var textTextures []*sdl.Texture
 	var x, y int32
 	var err error
 	for i, s := range text {
@@ -120,17 +117,17 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 		// O cache esta armazenado na SDLWindow
 		textSurface, err = window.textSurface(s, BLACK)
 		if err != nil {
-			return textTextures, err
+			return err
 		}
 
 		textTexture, err = window.renderer.CreateTextureFromSurface(textSurface)
 		if err != nil {
-			return textTextures, err
+			return err
 		}
 
 		_, _, fontW, fontH, err := textTexture.Query()
 		if err != nil {
-			return textTextures, err
+			return err
 		}
 
 		switch direction {
@@ -147,10 +144,9 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 			x = x1 - (space * int32(i)) - fontW/2
 			y = y1
 		default:
-			return nil, errors.New("direção invalida. drawManyRects()")
+			return errors.New("direção invalida. drawManyRects()")
 		}
 
-		textTextures = append(textTextures, textTexture)
 		window.renderer.Copy(textTexture, nil, &sdl.Rect{
 			X: x,
 			Y: y,
@@ -159,7 +155,7 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 		})
 	}
 
-	return textTextures, nil
+	return nil
 }
 
 func drawManyRects(renderer *sdl.Renderer, thickness int32, amount, direction int, rect sdl.Rect, color sdl.Color) error {

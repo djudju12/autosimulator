@@ -42,6 +42,10 @@ func (m *Machine) IsLastState() bool {
 	return utils.Contains(m.FinalStates, m._currentState)
 }
 
+func (m *Machine) GetStates() []string {
+	return m.States
+}
+
 func (m *Machine) GetTransitions(state string) []machine.Transition {
 	transitions := m.Transitions[state]
 	result := make([]machine.Transition, len(transitions))

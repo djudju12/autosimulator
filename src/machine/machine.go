@@ -26,6 +26,8 @@ type (
 		IsLastState() bool
 		PossibleTransitions() []Transition
 		CurrentState() string
+		GetTransitions(state string) []Transition
+		GetStates() []string
 	}
 
 	Transition interface {
