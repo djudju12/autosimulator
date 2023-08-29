@@ -142,9 +142,9 @@ func (c *Computation) Stringfy() string {
 func (cr *ComputationRecord) Stringfy() string {
 	var s string
 	if cr.transition == nil {
-		s += fmt.Sprintf("%s, ( ) %s", cr.currentState, cr.result)
+		s += fmt.Sprintf("%s %s", cr.currentState, cr.result)
 	} else {
-		s += fmt.Sprintf("%s -> %s, %s %s", cr.currentState, cr.transition.GetResultState(), cr.transition.Stringfy(), cr.result)
+		s += fmt.Sprintf("%s -> %s %s", cr.currentState, cr.transition.GetResultState(), cr.result)
 	}
 
 	return s

@@ -170,5 +170,3 @@ func machineStates(machine machine.Machine) map[string]*graphicalState {
 
 	return result
 }
-
-

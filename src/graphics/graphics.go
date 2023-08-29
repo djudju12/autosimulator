@@ -289,6 +289,12 @@ func drawUi(env *environment) error {
 		}
 
 	}
+
+	err = ui.drawHist(env.w, padx, pady)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
