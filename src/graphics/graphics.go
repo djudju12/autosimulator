@@ -17,7 +17,7 @@ const (
 	WITDH, HEIGTH = 800, 600
 	TITLE         = "Simulador de Autômato"
 	FONT_PATH     = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
-	FONT_ZIE      = 24
+	FONT_SIZE     = 24
 	FPS_DEFAULT   = 60
 	FPS_EXECUTING = 1
 )
@@ -114,7 +114,7 @@ func NewSDLWindow() *_SDLWindow {
 		panic(err)
 	}
 
-	font, err := ttf.OpenFont(FONT_PATH, FONT_ZIE)
+	font, err := ttf.OpenFont(FONT_PATH, FONT_SIZE)
 	if err != nil {
 		panic(err)
 	}
