@@ -14,29 +14,21 @@ import (
 )
 
 const (
-	WITDH, HEIGTH = 800, 600
-	TITLE         = "Simulador de Autômato"
-	FONT_PATH     = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
-	FONT_SIZE     = 24
-	FPS_DEFAULT   = 60
-	FPS_EXECUTING = 1
+	WITDH, HEIGTH   = 800, 600
+	TITLE           = "Simulador de Autômato"
+	FONT_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
+	FONT_SIZE       = 24
+	FPS_DEFAULT     = 60
+	DELAY_ANIMATION = 0.5 * 1000
 )
 
 type (
 	environment struct {
-		w       *_SDLWindow
-		machine machine.Machine
-		input   *collections.Fita
-	}
-
-	uiComponents struct {
-		states            map[string]*graphicalState
-		bufferComputation machine.Computation
-		indexComputation  int
-		bufferInput       []string
-		input             []string
-		dragInfo          *drag
-		*stackHist
+		w         *_SDLWindow
+		machine   machine.Machine
+		input     []string
+		terminate bool
+		running   bool
 	}
 
 	_SDLWindow struct {
@@ -44,7 +36,14 @@ type (
 		renderer   *sdl.Renderer
 		font       *ttf.Font
 		cacheWords map[string]*sdl.Surface
-		terminate  bool
+	}
+
+	uiComponents struct {
+		states            map[string]*graphicalState
+		bufferComputation machine.Computation
+		dragInfo          *drag
+		computationHist
+		*stackHist
 	}
 
 	drag struct {
@@ -54,6 +53,11 @@ type (
 		mousePos      *sdl.Point
 	}
 
+	computationHist struct {
+		indexComputation int
+		bufferInput      []string
+	}
+
 	stackHist struct {
 		stackA [][]string
 		stackB [][]string
@@ -61,20 +65,26 @@ type (
 )
 
 var (
-	ui    *uiComponents = &uiComponents{stackHist: &stackHist{[][]string{}, [][]string{}}}
-	BLACK               = sdl.Color{R: 0, G: 0, B: 0, A: 255}
-	WHITE               = sdl.Color{R: 255, G: 255, B: 255, A: 255}
-	BLUE                = sdl.Color{R: 0, G: 0, B: 255, A: 255}
-	RED                 = sdl.Color{R: 255, G: 0, B: 0, A: 255}
-	GREEN               = sdl.Color{R: 0, G: 255, B: 0, A: 255}
+	ui *uiComponents = &uiComponents{
+		stackHist: &stackHist{
+			[][]string{},
+			[][]string{},
+		},
+	}
+
+	fpsTimer uint64
+
+	BLACK = sdl.Color{R: 0, G: 0, B: 0, A: 255}
+	WHITE = sdl.Color{R: 255, G: 255, B: 255, A: 255}
+	BLUE  = sdl.Color{R: 0, G: 0, B: 255, A: 255}
+	RED   = sdl.Color{R: 255, G: 0, B: 0, A: 255}
+	GREEN = sdl.Color{R: 0, G: 255, B: 0, A: 255}
 )
 
 func Mainloop(env *environment) {
-	window := env.w
 	runtime.LockOSThread() // sdl2 precisa rodar na main thread.
-
 	ui.init(env)
-	for !window.terminate {
+	for !env.terminate {
 		pollEvent(env)
 		draw(env)
 		sdl.Delay(1000 / FPS_DEFAULT)
@@ -85,7 +95,10 @@ func Mainloop(env *environment) {
 
 func PopulateEnvironment(window *_SDLWindow, activeMachine machine.Machine) *environment {
 	env := &environment{
-		w: window, machine: activeMachine,
+		w:         window,
+		machine:   activeMachine,
+		terminate: false,
+		running:   false,
 	}
 
 	return env
@@ -123,13 +136,12 @@ func NewSDLWindow() *_SDLWindow {
 	return &_SDLWindow{window: window,
 		renderer:   renderer,
 		font:       font,
-		terminate:  false,
 		cacheWords: cacheWords,
 	}
 }
 
-func (env *environment) Input(fita *collections.Fita) {
-	env.input = fita
+func (env *environment) Input(fita []string) {
+	env.input = append(fita, collections.TAIL_FITA)
 }
 
 func (env *environment) Destroy() {
@@ -145,13 +157,12 @@ func (env *environment) Destroy() {
 }
 
 func pollEvent(env *environment) {
-	window := env.w
 	event := sdl.PollEvent()
 	for event != nil {
 		switch event := event.(type) {
 		case *sdl.QuitEvent:
 			fmt.Printf("Quiting....")
-			window.terminate = true
+			env.terminate = true
 
 		case *sdl.KeyboardEvent:
 			handleKeyboardEvents(event, env)
@@ -171,19 +182,25 @@ func pollEvent(env *environment) {
 
 func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 	switch event.Keysym.Sym {
-	case sdl.K_UP:
-		if event.Type == sdl.KEYDOWN {
-			if ui.indexComputation > 0 {
-				ui.indexComputation--
-			}
-		}
+
 	case sdl.K_DOWN:
 		if event.Type == sdl.KEYDOWN {
-			if ui.indexComputation < len(ui.bufferComputation.History)-1 {
-				ui.indexComputation++
-			}
+			ui.nextComputation()
 		}
+
+	case sdl.K_UP:
+		if event.Type == sdl.KEYDOWN {
+			ui.previusComputation()
+		}
+
+	case sdl.K_SPACE:
+		if event.Type == sdl.KEYDOWN {
+			// toggle running
+			env.running = !env.running
+		}
+
 	case sdl.K_r:
+		ui.init(env)
 		// env.Reset()
 	}
 }
@@ -234,7 +251,7 @@ func handleMouseMotionEvent(env *environment) {
 
 func draw(env *environment) {
 	window := env.w
-	ui.update()
+	ui.update(env)
 	err := window.cleanUp()
 	if err != nil {
 		fmt.Println(err)
@@ -295,7 +312,16 @@ func drawUi(env *environment) error {
 	return nil
 }
 
-func (ui *uiComponents) update() {
+func (ui *uiComponents) update(env *environment) {
+	if env.running {
+		now := sdl.GetTicks64()
+		if now > uint64(fpsTimer+DELAY_ANIMATION) {
+			ui.nextComputation()
+			env.running = ui.indexComputation != (len(ui.bufferComputation.History) - 1)
+			fpsTimer = now
+		}
+	}
+
 	for _, state := range ui.states {
 		state.color = BLACK
 	}
@@ -307,7 +333,7 @@ func (ui *uiComponents) update() {
 		firstState.color = BLUE
 	}
 
-	ui.bufferInput = bufferMe(ui.input, ui.indexComputation)
+	ui.bufferInput = bufferMe(env.input, ui.indexComputation)
 
 	record := ui.bufferComputation.History[ui.indexComputation]
 	details := record.Details()
@@ -329,9 +355,9 @@ func (ui *uiComponents) init(env *environment) {
 		mousePos:      &sdl.Point{X: 0, Y: 0},
 	}
 
-	ui.input = env.input.Peek(env.input.Length())
-	bufferInput := bufferMe(ui.input, 0)
-	computation := machine.Execute(env.machine, env.input)
+	bufferInput := bufferMe(env.input, 0)
+	fita := collections.FitaFromArray(env.input)
+	computation := machine.Execute(env.machine, fita)
 
 	if env.machine.Type() == machine.TWO_STACK_MACHINE {
 		v, _ := env.machine.(*stackMachine.Machine)
@@ -348,6 +374,8 @@ func (ui *uiComponents) init(env *environment) {
 	initalDetails := initial.Details()
 	firstState := ui.states[initalDetails["CURRENT_STATE"]]
 	firstState.color = BLUE
+
+	env.running = false
 }
 
 func drawNodes(env *environment) error {
@@ -412,6 +440,18 @@ func (st *stackHist) get(i int) ([]string, []string) {
 	}
 
 	return a, b
+}
+
+func (ui *uiComponents) previusComputation() {
+	if ui.indexComputation > 0 {
+		ui.indexComputation--
+	}
+}
+
+func (ui *uiComponents) nextComputation() {
+	if ui.indexComputation < len(ui.bufferComputation.History)-1 {
+		ui.indexComputation++
+	}
 }
 
 func drawAxs(env *environment) {

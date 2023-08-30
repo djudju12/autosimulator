@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	RIGHT = iota
-	LEFT  = iota
 	UP    = iota
+	RIGHT = iota
 	DOWN  = iota
+	LEFT  = iota
 )
 
 const (
@@ -46,7 +46,7 @@ func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	// Head da fita
 	headBase := fitaWidth / 2
 	headHeigth := headBase / 2
-	err = drawArrow(window.renderer, thickness, (x + fitaWidth/2), (y - pady), headBase, headHeigth, BLACK, DOWN)
+	err = drawArrowDown(window.renderer, thickness, (x + fitaWidth/2), (y - pady), headBase, headHeigth, BLACK)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 			x = x1
 			y = y1 + ((space + fontH/2) * int32(i)) - fontH/2
 		default:
-			return errors.New("direção invalida. drawManyRects()")
+			return errors.New("direção invalida. drawText()")
 		}
 
 		textRect := &sdl.Rect{
@@ -179,9 +179,6 @@ func drawManyRects(renderer *sdl.Renderer, thickness int32, amount, direction in
 			y = rect.Y - (rect.H * i)
 		case RIGHT:
 			x = rect.X + (rect.W * i)
-			y = rect.Y
-		case LEFT:
-			x = rect.X - (rect.W * i)
 			y = rect.Y
 
 		default:
@@ -220,35 +217,32 @@ func drawRect(renderer *sdl.Renderer, thickness int32, rect sdl.Rect, color sdl.
 	return nil
 }
 
-func drawArrow(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color, direction int) error {
+func drawArrowRight(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color) error {
 	var ok bool
 	errText := "nao foi possível desenhar a flecha"
+	ok = gfx.ThickLineColor(renderer, x, y, x-heigth, y-base/2, thickness, color)
+	if !ok {
+		return errors.New(errText)
+	}
 
-	switch direction {
-	case RIGHT:
-		ok = gfx.ThickLineColor(renderer, x, y, x-heigth, y-base/2, thickness, color)
-		if !ok {
-			return errors.New(errText)
-		}
+	ok = gfx.ThickLineColor(renderer, x, y, x-heigth, y+base/2, thickness, color)
+	if !ok {
+		return errors.New(errText)
+	}
 
-		ok = gfx.ThickLineColor(renderer, x, y, x-heigth, y+base/2, thickness, color)
-		if !ok {
-			return errors.New(errText)
-		}
+	return nil
+}
+func drawArrowDown(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color) error {
+	var ok bool
+	errText := "nao foi possível desenhar a flecha"
+	ok = gfx.ThickLineColor(renderer, x, y, x-base/2, y-heigth, thickness, color)
+	if !ok {
+		return errors.New(errText)
+	}
 
-	case DOWN:
-		ok = gfx.ThickLineColor(renderer, x, y, x-base/2, y-heigth, thickness, color)
-		if !ok {
-			return errors.New(errText)
-		}
-
-		ok = gfx.ThickLineColor(renderer, x, y, x+base/2, y-heigth, thickness, color)
-		if !ok {
-			return errors.New(errText)
-		}
-
-	default:
-		return errors.New("NOT IMPLEMENTED")
+	ok = gfx.ThickLineColor(renderer, x, y, x+base/2, y-heigth, thickness, color)
+	if !ok {
+		return errors.New(errText)
 	}
 
 	return nil
@@ -271,7 +265,7 @@ func (ui *uiComponents) drawHist(window *_SDLWindow, padx, pady int32) error {
 	headBase := rect.H / 2
 	headHeigth := headBase / 2
 
-	err := drawArrow(window.renderer, thickness, x-padx, yArrow, headBase, headHeigth, BLACK, RIGHT)
+	err := drawArrowRight(window.renderer, thickness, x-padx, yArrow, headBase, headHeigth, BLACK)
 	if err != nil {
 		return err
 	}
