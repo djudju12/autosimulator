@@ -29,7 +29,8 @@ const (
 func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	// Calculo da posicao inicial da fita/texto
 	var fitaWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
-	x := padx
+	x := window.WIDTH - (fitaWidth*TAMANHO_ESTRUTURAS + DIMENSAO_ESTRUTURAS*8 + padx*5 + fitaWidth/4)
+	// x := window.WIDTH - padx - DIMENSAO_ESTRUTURAS*2
 	y := (window.HEIGHT - fitaWidth) - pady
 
 	// Rec representa o primeiro quadrado da fita
@@ -87,7 +88,7 @@ func (env *environment) drawStack(stack []string, index, padx, pady int32) error
 
 	// Calculo da posicao inicial do stack/texto
 	var stackWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
-	x := window.WIDTH - (padx+stackWidth)*(index+1)
+	x := window.WIDTH - (padx+stackWidth)*index
 	y := window.HEIGHT - (pady + stackWidth*TAMANHO_ESTRUTURAS)
 
 	// Esse rec represeta o primeiro quadrado do stack
@@ -234,6 +235,7 @@ func drawArrowRight(renderer *sdl.Renderer, thickness, x, y, base, heigth int32,
 
 	return nil
 }
+
 func drawArrowDown(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color) error {
 	var ok bool
 	errText := "nao foi possível desenhar a flecha"
@@ -254,11 +256,13 @@ func (ui *uiComponents) drawHist(window *_SDLWindow, padx, pady int32) error {
 
 	var amount int32 = 3
 	var thickness int32 = 2
-	x, y := DIMENSAO_ESTRUTURAS*TAMANHO_ESTRUTURAS+padx*6, window.HEIGHT-pady-DIMENSAO_ESTRUTURAS
+	var histWidth int32 = DIMENSAO_ESTRUTURAS * 6
+	x := window.WIDTH - (DIMENSAO_ESTRUTURAS*2 + padx*3 + histWidth)
+	y := window.HEIGHT - pady - DIMENSAO_ESTRUTURAS
 	rect := sdl.Rect{
 		X: x,
 		Y: y,
-		W: DIMENSAO_ESTRUTURAS * 6,
+		W: histWidth,
 		H: DIMENSAO_ESTRUTURAS,
 	}
 

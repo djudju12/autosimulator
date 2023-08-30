@@ -17,7 +17,7 @@ const (
 	FONT_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
 	FONT_SIZE       = 24
 	FPS_DEFAULT     = 60
-	WITDH, HEIGHT   = 800, 600
+	WITDH, HEIGHT   = 580, 750
 	DELAY_ANIMATION = 0.5 * 1000
 )
 
@@ -89,7 +89,7 @@ func Mainloop(env *environment) {
 	runtime.LockOSThread() // sdl2 precisa rodar na main thread.
 	ui.init(env)
 	for !env.terminate {
-		env.w.update()
+		// env.w.update()
 		pollEvent(env)
 		draw(env)
 		sdl.Delay(1000 / FPS_DEFAULT)
@@ -116,7 +116,7 @@ func NewSDLWindow() *_SDLWindow {
 	}
 
 	window, err := sdl.CreateWindow(TITLE, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		WITDH, HEIGHT, sdl.WINDOW_RESIZABLE)
+		WITDH, HEIGHT, sdl.WINDOW_SHOWN)
 	if err != nil {
 		panic(err)
 	}
@@ -147,10 +147,10 @@ func NewSDLWindow() *_SDLWindow {
 	}
 }
 
-func (w *_SDLWindow) update() {
-	window := w.window
-	w.WIDTH, w.HEIGHT = window.GetSize()
-}
+// func (w *_SDLWindow) update() {
+// 	window := w.window
+// 	w.WIDTH, w.HEIGHT = window.GetSize()
+// }
 
 func (env *environment) Input(fita []string) {
 	env.input = append(fita, collections.TAIL_FITA)
