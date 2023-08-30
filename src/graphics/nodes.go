@@ -3,6 +3,7 @@ package graphics
 import (
 	"autosimulator/src/machine"
 	"errors"
+	"fmt"
 
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
@@ -43,10 +44,11 @@ func (s *graphicalState) Center() sdl.Point {
 func (s *graphicalState) Draw(w *_SDLWindow, states map[string]*graphicalState) error {
 	renderer := w.renderer
 	words := w.cacheWords
+	var err error
 
 	outerRadius := s.Rect.W / 2
 	innerRadius := (95 * outerRadius) / 100 // % do outerRadius
-	err := s.drawRing(renderer, s.Rect.W/2, innerRadius, s.color)
+	err = s.drawRing(renderer, outerRadius, innerRadius, s.color)
 	if err != nil {
 		return err
 	}
@@ -80,15 +82,15 @@ func (s *graphicalState) drawRing(renderer *sdl.Renderer, r1, r2 int32, color sd
 
 // https://github.com/k4zmu2a/SpaceCadetPinball/blob/master/SpaceCadetPinball/DebugOverlay.cpp
 func drawCircle(renderer *sdl.Renderer, x, y, radius int32, color sdl.Color) error {
-	renderer.SetDrawColor(color.R, color.G, color.B, color.A)
 	var t int32 = 256
-	var err error
 	var points []sdl.Point = make([]sdl.Point, t)
 	var pointCount int32 = 0
 	var offsetx int32 = 0
 	var offsety int32 = radius
-	d := radius - 1
+	var d int32 = radius - 1
 
+	var err error
+	renderer.SetDrawColor(color.R, color.G, color.B, color.A)
 	for offsety >= offsetx {
 		if (pointCount + 8) > t {
 			err = renderer.DrawPoints(points)
@@ -191,10 +193,17 @@ func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState,
 	radiusMiniBall := thickness * 2
 
 	// Calcula o ponto inicial e final da linha
-	start, end := LinePoints(fromCenter, toCenter, radius, radius+float64(radiusMiniBall))
+	start, end, ok := LinePoints(fromCenter, toCenter, radius, radius+float64(radiusMiniBall))
+	if !ok {
+		return nil
+	}
 
+	if start.X < 0 {
+		fmt.Println(fromCenter, toCenter, radius, radius+float64(radiusMiniBall))
+		fmt.Println(start, end)
+	}
 	// Desenha a linha
-	ok := gfx.ThickLineColor(renderer, start.X, start.Y, end.X, end.Y, thickness, COLOR_DEFAULT)
+	ok = gfx.ThickLineColor(renderer, start.X, start.Y, end.X, end.Y, thickness, COLOR_DEFAULT)
 	if !ok {
 		return errors.New("erro ao renderizar as linhas")
 	}

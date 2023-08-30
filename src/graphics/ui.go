@@ -26,12 +26,11 @@ const (
 	DIMENSAO_ESTRUTURAS = 32
 )
 
-
 func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	// Calculo da posicao inicial da fita/texto
 	var fitaWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
 	x := padx
-	y := (HEIGTH - fitaWidth) - pady
+	y := (window.HEIGHT - fitaWidth) - pady
 
 	// Rec representa o primeiro quadrado da fita
 	fitaRec := sdl.Rect{
@@ -88,8 +87,8 @@ func (env *environment) drawStack(stack []string, index, padx, pady int32) error
 
 	// Calculo da posicao inicial do stack/texto
 	var stackWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
-	x := WITDH - (padx+stackWidth)*(index+1)
-	y := HEIGTH - (pady + stackWidth*TAMANHO_ESTRUTURAS)
+	x := window.WIDTH - (padx+stackWidth)*(index+1)
+	y := window.HEIGHT - (pady + stackWidth*TAMANHO_ESTRUTURAS)
 
 	// Esse rec represeta o primeiro quadrado do stack
 	oneStackCointainer := sdl.Rect{
@@ -255,7 +254,7 @@ func (ui *uiComponents) drawHist(window *_SDLWindow, padx, pady int32) error {
 
 	var amount int32 = 3
 	var thickness int32 = 2
-	x, y := DIMENSAO_ESTRUTURAS*TAMANHO_ESTRUTURAS+padx*6, HEIGTH-pady-DIMENSAO_ESTRUTURAS
+	x, y := DIMENSAO_ESTRUTURAS*TAMANHO_ESTRUTURAS+padx*6, window.HEIGHT-pady-DIMENSAO_ESTRUTURAS
 	rect := sdl.Rect{
 		X: x,
 		Y: y,

@@ -10,8 +10,12 @@ type Vector struct {
 	X, Y float64
 }
 
-func LinePoints(p1, p2 sdl.Point, distanceFromP1, distanceFromP2 float64) (*sdl.Point, *sdl.Point) {
+func LinePoints(p1, p2 sdl.Point, distanceFromP1, distanceFromP2 float64) (*sdl.Point, *sdl.Point, bool) {
 	// TODO: Test if this convrsion is necessary
+	if p1 == p2 {
+		return nil, nil, false
+	}
+
 	vec1 := FromSdlPoint(p1)
 	vec2 := FromSdlPoint(p2)
 
@@ -22,7 +26,7 @@ func LinePoints(p1, p2 sdl.Point, distanceFromP1, distanceFromP2 float64) (*sdl.
 	// v + d*u
 	p1U := MultiplyByScalar(u, distanceFromP1)
 	p2U := MultiplyByScalar(u, distanceFromP2)
-	return Add(vec1, *p1U).ToSdlPoint(), Sub(vec2, *p2U).ToSdlPoint()
+	return Add(vec1, *p1U).ToSdlPoint(), Sub(vec2, *p2U).ToSdlPoint(), true
 }
 
 // For the simplicity of the code, we will use sqrt()

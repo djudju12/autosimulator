@@ -8,17 +8,16 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
 
 const (
-	WITDH, HEIGTH   = 800, 600
 	TITLE           = "Simulador de Autômato"
 	FONT_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
 	FONT_SIZE       = 24
 	FPS_DEFAULT     = 60
+	WITDH, HEIGHT   = 800, 600
 	DELAY_ANIMATION = 0.5 * 1000
 )
 
@@ -35,6 +34,8 @@ type (
 		window     *sdl.Window
 		renderer   *sdl.Renderer
 		font       *ttf.Font
+		WIDTH      int32
+		HEIGHT     int32
 		cacheWords map[string]*sdl.Surface
 	}
 
@@ -88,6 +89,7 @@ func Mainloop(env *environment) {
 	runtime.LockOSThread() // sdl2 precisa rodar na main thread.
 	ui.init(env)
 	for !env.terminate {
+		env.w.update()
 		pollEvent(env)
 		draw(env)
 		sdl.Delay(1000 / FPS_DEFAULT)
@@ -114,7 +116,7 @@ func NewSDLWindow() *_SDLWindow {
 	}
 
 	window, err := sdl.CreateWindow(TITLE, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		WITDH, HEIGTH, sdl.WINDOW_SHOWN)
+		WITDH, HEIGHT, sdl.WINDOW_RESIZABLE)
 	if err != nil {
 		panic(err)
 	}
@@ -140,7 +142,14 @@ func NewSDLWindow() *_SDLWindow {
 		renderer:   renderer,
 		font:       font,
 		cacheWords: cacheWords,
+		WIDTH:      WITDH,
+		HEIGHT:     HEIGHT,
 	}
+}
+
+func (w *_SDLWindow) update() {
+	window := w.window
+	w.WIDTH, w.HEIGHT = window.GetSize()
 }
 
 func (env *environment) Input(fita []string) {
@@ -465,9 +474,4 @@ func (ui *uiComponents) nextComputation() {
 	if ui.indexComputation < len(ui.bufferComputation.History)-1 {
 		ui.indexComputation++
 	}
-}
-
-func drawAxs(env *environment) {
-	gfx.ThickLineColor(env.w.renderer, WITDH/2, 0, WITDH/2, HEIGTH, 2, BLACK)
-	gfx.ThickLineColor(env.w.renderer, 0, HEIGTH/2, WITDH, HEIGTH/2, 2, BLACK)
 }
