@@ -45,7 +45,6 @@ type (
 		font       *ttf.Font
 		cacheWords map[string]*sdl.Surface
 		terminate  bool
-		redraw     bool
 	}
 
 	drag struct {
@@ -126,7 +125,6 @@ func NewSDLWindow() *_SDLWindow {
 		font:       font,
 		terminate:  false,
 		cacheWords: cacheWords,
-		redraw:     true,
 	}
 }
 
@@ -231,7 +229,6 @@ func handleMouseMotionEvent(env *environment) {
 	if dragInfo.leftMouseDown && dragInfo.selected != nil {
 		dragInfo.selected.X = dragInfo.mousePos.X - dragInfo.clickOffset.X
 		dragInfo.selected.Y = dragInfo.mousePos.Y - dragInfo.clickOffset.Y
-		env.w.redraw = true
 	}
 }
 
