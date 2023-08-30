@@ -79,6 +79,9 @@ var (
 	BLUE  = sdl.Color{R: 0, G: 0, B: 255, A: 255}
 	RED   = sdl.Color{R: 255, G: 0, B: 0, A: 255}
 	GREEN = sdl.Color{R: 0, G: 255, B: 0, A: 255}
+
+	COLOR_DEFAULT   = sdl.Color{R: 235, G: 174, B: 52, A: 255}
+	COLOR_BACKGROUD = sdl.Color{R: 18, G: 18, B: 18, A: 255}
 )
 
 func Mainloop(env *environment) {
@@ -200,8 +203,7 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 		}
 
 	case sdl.K_r:
-		ui.init(env)
-		// env.Reset()
+		ui.reset(env)
 	}
 }
 
@@ -275,7 +277,7 @@ func draw(env *environment) {
 
 func (w *_SDLWindow) cleanUp() error {
 
-	err := w.renderer.SetDrawColor(255, 255, 255, 255)
+	err := w.renderer.SetDrawColor(COLOR_BACKGROUD.R, COLOR_BACKGROUD.G, COLOR_BACKGROUD.B, COLOR_BACKGROUD.A)
 	if err != nil {
 		return err
 	}
@@ -323,7 +325,7 @@ func (ui *uiComponents) update(env *environment) {
 	}
 
 	for _, state := range ui.states {
-		state.color = BLACK
+		state.color = COLOR_DEFAULT
 	}
 
 	if ui.indexComputation == 0 {
@@ -375,6 +377,17 @@ func (ui *uiComponents) init(env *environment) {
 	firstState := ui.states[initalDetails["CURRENT_STATE"]]
 	firstState.color = BLUE
 
+	env.running = false
+}
+
+func (ui *uiComponents) reset(env *environment) {
+	bufferInput := bufferMe(env.input, 0)
+	ui.bufferInput = bufferInput
+	ui.indexComputation = 0
+	initial := ui.bufferComputation.History[0]
+	initalDetails := initial.Details()
+	firstState := ui.states[initalDetails["CURRENT_STATE"]]
+	firstState.color = BLUE
 	env.running = false
 }
 

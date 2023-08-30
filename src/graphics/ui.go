@@ -21,8 +21,11 @@ const (
 	TEXT_UP_CENTER    = iota
 )
 
-const TAMANHO_ESTRUTURAS = 9
-const DIMENSAO_ESTRUTURAS = 32
+const (
+	TAMANHO_ESTRUTURAS  = 9
+	DIMENSAO_ESTRUTURAS = 32
+)
+
 
 func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	// Calculo da posicao inicial da fita/texto
@@ -38,7 +41,7 @@ func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 		H: fitaWidth, // É um quadrado
 	}
 
-	err := drawManyRects(window.renderer, thickness, int(TAMANHO_ESTRUTURAS), RIGHT, fitaRec, BLACK)
+	err := drawManyRects(window.renderer, thickness, int(TAMANHO_ESTRUTURAS), RIGHT, fitaRec, COLOR_DEFAULT)
 	if err != nil {
 		return err
 	}
@@ -46,7 +49,7 @@ func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	// Head da fita
 	headBase := fitaWidth / 2
 	headHeigth := headBase / 2
-	err = drawArrowDown(window.renderer, thickness, (x + fitaWidth/2), (y - pady), headBase, headHeigth, BLACK)
+	err = drawArrowDown(window.renderer, thickness, (x + fitaWidth/2), (y - pady), headBase, headHeigth, COLOR_DEFAULT)
 	if err != nil {
 		return err
 	}
@@ -97,7 +100,7 @@ func (env *environment) drawStack(stack []string, index, padx, pady int32) error
 	}
 
 	// Retangulos
-	err := drawManyRects(window.renderer, thickness, int(TAMANHO_ESTRUTURAS), UP, oneStackCointainer, BLACK)
+	err := drawManyRects(window.renderer, thickness, int(TAMANHO_ESTRUTURAS), UP, oneStackCointainer, COLOR_DEFAULT)
 	if err != nil {
 		return err
 	}
@@ -121,7 +124,7 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 	for i, s := range text {
 		// Essa função checa se há a palavra no cache antes de cirar a surface
 		// O cache esta armazenado na SDLWindow
-		textSurface, err = window.textSurface(s, BLACK)
+		textSurface, err = window.textSurface(s, COLOR_DEFAULT)
 		if err != nil {
 			return err
 		}
@@ -156,7 +159,7 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 			H: fontH,
 		}
 
-		// drawRect(window.renderer, 2, *textRect, BLACK)
+		// drawRect(window.renderer, 2, *textRect, COLOR_DEFAULT)
 		window.renderer.Copy(textTexture, nil, textRect)
 	}
 
@@ -265,12 +268,12 @@ func (ui *uiComponents) drawHist(window *_SDLWindow, padx, pady int32) error {
 	headBase := rect.H / 2
 	headHeigth := headBase / 2
 
-	err := drawArrowRight(window.renderer, thickness, x-padx, yArrow, headBase, headHeigth, BLACK)
+	err := drawArrowRight(window.renderer, thickness, x-padx, yArrow, headBase, headHeigth, COLOR_DEFAULT)
 	if err != nil {
 		return err
 	}
 
-	err = drawManyRects(window.renderer, thickness, int(amount), DOWN, rect, BLACK)
+	err = drawManyRects(window.renderer, thickness, int(amount), DOWN, rect, COLOR_DEFAULT)
 	if err != nil {
 		return err
 	}

@@ -13,3 +13,4 @@ func main() {
 	environment.Input([]string{"a", "a", "b"})
 	graphics.Mainloop(environment)
 }
+ 
