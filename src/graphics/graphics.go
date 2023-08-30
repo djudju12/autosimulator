@@ -206,8 +206,8 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 		}
 
 	case sdl.K_SPACE:
+		// toggle running
 		if event.Type == sdl.KEYDOWN {
-			// toggle running
 			env.running = !env.running
 		}
 
@@ -375,7 +375,7 @@ func (ui *uiComponents) init(env *environment) {
 		ui.stackA, ui.stackB = v.StackHistory()
 	}
 
-	ui.states = machineStates(env.machine)
+	ui.states = machineStates(env)
 	ui.dragInfo = dragInfo
 	ui.indexComputation = 0
 	ui.bufferComputation = *computation

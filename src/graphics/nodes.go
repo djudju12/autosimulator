@@ -1,9 +1,9 @@
 package graphics
 
 import (
-	"autosimulator/src/machine"
 	"errors"
 	"fmt"
+	"math/rand"
 
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
@@ -217,12 +217,16 @@ func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState,
 	return nil
 }
 
-func machineStates(machine machine.Machine) map[string]*graphicalState {
+func machineStates(env *environment) map[string]*graphicalState {
+	machine := env.machine
+	window := env.w
 	result := make(map[string]*graphicalState)
-	for i, state := range machine.GetStates() {
+	for _, state := range machine.GetStates() {
 		rect := &sdl.Rect{
-			X: X_FIRST,
-			Y: Y_FIRST + int32(i*HEIGTH_REC),
+			// X: X_FIRST,
+			// Y: Y_FIRST + int32(i*HEIGTH_REC),
+			X: WIDTH_REC + rand.Int31n(window.WIDTH-WIDTH_REC*2),
+			Y: rand.Int31n(window.HEIGHT / 2),
 			W: WIDTH_REC,
 			H: HEIGTH_REC,
 		}
