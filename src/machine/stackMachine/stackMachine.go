@@ -52,9 +52,6 @@ func (m *Machine) Init(input *collections.Fita) {
 }
 
 func (m *Machine) IsLastState() bool {
-	a, b := m.StackHistory()
-	fmt.Printf("stack no ultimo estado (islaststaet):a: %+v\nb: %+v\n", a, b)
-
 	return utils.Contains(m.FinalStates, m._currentState)
 }
 

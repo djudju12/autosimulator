@@ -60,6 +60,8 @@ type (
 func Execute(m Machine, fita *collections.Fita) *Computation {
 	// Seta o estado inicial
 	m.Init(fita)
+
+	// Criar um registro para salvar o historico da computação
 	comp := newComputation(m)
 
 	ok := true
@@ -77,12 +79,10 @@ func Execute(m Machine, fita *collections.Fita) *Computation {
 		comp.add(stateBefore, m.CurrentState())
 	}
 
-	if m.IsLastState() {
-		comp.setResult(ACCEPTED)
-	} else {
-		comp.setResult(REJECTED)
-	}
+	// Marca se foi aceita a entrada
+	comp.setResult(m)
 
+	// Pritna o histórico da computação
 	fmt.Println(comp.Stringfy())
 	return comp
 }
@@ -122,8 +122,12 @@ func newComputationRecord(m Machine) *ComputationRecord {
 	return &record
 }
 
-func (c *Computation) setResult(result string) {
-	c.History[len(c.History)-1].result = result
+func (c *Computation) setResult(m Machine) {
+	if m.IsLastState() {
+		c.History[len(c.History)-1].result = ACCEPTED
+	} else {
+		c.History[len(c.History)-1].result = REJECTED
+	}
 }
 
 func (c *Computation) add(lastState string, currentState string) {
