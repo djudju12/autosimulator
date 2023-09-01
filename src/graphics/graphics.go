@@ -324,6 +324,8 @@ func drawUi(env *environment) error {
 }
 
 func (ui *uiComponents) update(env *environment) {
+	// se estiver rodando, atualiza a cada DELAY_ANIMATION
+	// Ou seja, anima a cada DELAY_ANIMATION milisegundos
 	if env.running {
 		now := sdl.GetTicks64()
 		if now > uint64(fpsTimer+DELAY_ANIMATION) {
@@ -333,29 +335,29 @@ func (ui *uiComponents) update(env *environment) {
 		}
 	}
 
+	// Pinta todos os estados com a cor default
 	for _, state := range ui.states {
 		state.color = COLOR_DEFAULT
 	}
 
-	if ui.indexComputation == 0 {
-		initial := ui.bufferComputation.History[0]
-		initalDetails := initial.Details()
-		firstState := ui.states[initalDetails["CURRENT_STATE"]]
-		firstState.color = BLUE
-	}
-
+	// Atualiza o buffer que printa a fita
 	ui.bufferInput = bufferMe(env.input, ui.indexComputation)
 
+	// Historico da computação atual
 	record := ui.bufferComputation.History[ui.indexComputation]
 	details := record.Details()
+
+	// Cor do proximo estado
 	nextSate := ui.states[details["NEXT_STATE"]]
-	if nextSate != nil {
-		if details["RESULT"] == machine.ACCEPTED {
-			nextSate.color = GREEN
-		} else {
-			nextSate.color = RED
-		}
+	switch details["RESULT"] {
+	case machine.INITIAL:
+		nextSate.color = BLUE
+	case machine.ACCEPTED:
+		nextSate.color = GREEN
+	default:
+		nextSate.color = RED
 	}
+
 }
 
 func (ui *uiComponents) init(env *environment) {
@@ -383,7 +385,7 @@ func (ui *uiComponents) init(env *environment) {
 
 	initial := ui.bufferComputation.History[0]
 	initalDetails := initial.Details()
-	firstState := ui.states[initalDetails["CURRENT_STATE"]]
+	firstState := ui.states[initalDetails["LAST_STATE"]]
 	firstState.color = BLUE
 
 	env.running = false
@@ -395,7 +397,7 @@ func (ui *uiComponents) reset(env *environment) {
 	ui.indexComputation = 0
 	initial := ui.bufferComputation.History[0]
 	initalDetails := initial.Details()
-	firstState := ui.states[initalDetails["CURRENT_STATE"]]
+	firstState := ui.states[initalDetails["LAST_STATE"]]
 	firstState.color = BLUE
 	env.running = false
 }

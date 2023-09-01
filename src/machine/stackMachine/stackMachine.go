@@ -41,19 +41,21 @@ func New() *Machine {
 	}
 }
 
-func (m *Machine) Init() {
+func (m *Machine) Init(input *collections.Fita) {
+	m.Input = input
 	m._currentState = m.InitialState
-	a := collections.NewStack()
-	b := collections.NewStack()
-	m._stackA = a
-	m._stackB = b
+	m._stackA = collections.NewStack()
+	m._stackB = collections.NewStack()
 	m._stackAHistory = [][]string{}
 	m._stackBHistory = [][]string{}
 	m.backupStacks()
 }
 
 func (m *Machine) IsLastState() bool {
-	return machine.NextTransition(m, collections.TAIL_FITA)
+	a, b := m.StackHistory()
+	fmt.Printf("stack no ultimo estado (islaststaet):a: %+v\nb: %+v\n", a, b)
+
+	return utils.Contains(m.FinalStates, m._currentState)
 }
 
 func (m *Machine) CurrentState() string {
@@ -90,43 +92,46 @@ func (m *Machine) Stacks() []*collections.Stack {
 }
 
 func (t *Transition) MakeTransition(m machine.Machine) bool {
-	// TODO: devo fazer sempre readA->writeA->readB->writeB?
 	stackMachine, ok := m.(*Machine)
 	if !ok {
-		fmt.Printf("invalido tipo de maquina: %v\n", m)
+		fmt.Printf("tipo invalido de maquina: %v\n", m)
 		os.Exit(1)
 	}
 
 	a := stackMachine._stackA
 	b := stackMachine._stackB
 
-	check := func(s *collections.Stack, read string, write string) bool {
-		if read != "&" {
-			if s.IsEmpty() {
+	check := func(stack *collections.Stack, read string, write string) bool {
+		if read != collections.PALAVRA_VAZIA {
+			if stack.IsEmpty() {
 				return false
 			}
 
-			if s.Pop() != read {
+			current := stack.Peek(1)[0]
+			if current != read {
 				return false
 			}
+
+			stack.Pop()
 		}
-		if write != "&" {
-			s.Push(write)
+
+		if write != collections.PALAVRA_VAZIA {
+			stack.Push(write)
 		}
 
 		return true
 	}
-
-	stackMachine._currentState = t.ResultState
 
 	// checa os dois stacks
-	if check(a, t.ReadA, t.WriteA) || check(b, t.ReadB, t.WriteB) {
-		v, _ := m.(*Machine)
-		v.backupStacks()
-		return true
+	if ok = (check(a, t.ReadA, t.WriteA) && check(b, t.ReadB, t.WriteB)); ok {
+		stackMachine._currentState = t.ResultState
 	}
 
-	return false
+	// Salva o historico do stack
+	v, _ := m.(*Machine)
+	v.backupStacks()
+
+	return ok
 }
 
 func (m *Machine) StackHistory() ([][]string, [][]string) {

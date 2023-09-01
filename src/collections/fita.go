@@ -26,15 +26,14 @@ func NewFita() *Fita {
 	}
 }
 
-func (f *Fita) Read() (string, bool) {
+func (f *Fita) Read() string {
 	if f.current == nil {
-		f.Reset()
-		return "", false
+		return ""
 	}
 
 	value := f.current.value
 	f.current = f.current.next
-	return value, true
+	return value
 }
 
 func (f *Fita) Print() {
@@ -74,6 +73,14 @@ func FitaFromArray(value []string) *Fita {
 
 func (f *Fita) Length() int {
 	return f.len
+}
+
+func (f *Fita) IsLast() bool {
+	if f.current == nil {
+		return false
+	}
+
+	return f.current.next == nil
 }
 
 func (f *Fita) Peek(amount int) []string {

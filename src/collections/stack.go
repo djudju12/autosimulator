@@ -36,9 +36,11 @@ func (s *Stack) Pop() string {
 	if s.first.value == TAIL_FITA {
 		return TAIL_FITA
 	}
+
 	temp := s.first
 	s.first = s.first.next
 	s.len--
+
 	return temp.value
 }
 

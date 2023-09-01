@@ -20,7 +20,7 @@ const (
 
 type (
 	Machine interface {
-		Init()
+		Init(input *collections.Fita)
 		Type() int
 		Stacks() []*collections.Stack
 		IsLastState() bool
@@ -43,6 +43,7 @@ type (
 		FinalStates  []string `json:"finalStates"`
 		Alfabet      []string `json:"alfabet"`
 		Type         string   `json:"type"`
+		Input        *collections.Fita
 	}
 
 	Computation struct {
@@ -50,63 +51,59 @@ type (
 	}
 
 	ComputationRecord struct {
+		lastState    string
 		currentState string
-		transition   Transition
 		result       string
 	}
 )
 
-var Comp *Computation
-
 func Execute(m Machine, fita *collections.Fita) *Computation {
-	// init seta o estado inicial
-	m.Init()
-	Comp = newComputation(m)
-	var s string
-	for {
-		s, _ = fita.Read()
-		if s == collections.TAIL_FITA {
-			break
-		}
+	// Seta o estado inicial
+	m.Init(fita)
+	comp := newComputation(m)
 
-		if ok := NextTransition(m, s); !ok {
-			Comp.setResult(REJECTED)
-			return Comp
-		}
+	ok := true
+	for ok {
+		// Lê o proximo input
+		symbol := fita.Read()
+
+		// Salva o estado atual
+		stateBefore := m.CurrentState()
+
+		// Faz a transição de estados
+		ok = NextTransition(m, symbol)
+
+		// Salva o histórico da transição
+		comp.add(stateBefore, m.CurrentState())
 	}
 
 	if m.IsLastState() {
-		Comp.setResult(ACCEPTED)
+		comp.setResult(ACCEPTED)
 	} else {
-		Comp.setResult(REJECTED)
+		comp.setResult(REJECTED)
 	}
 
-	return Comp
+	fmt.Println(comp.Stringfy())
+	return comp
 }
 
 func NextTransition(m Machine, symbol string) bool {
+	if symbol == "" {
+		return false
+	}
+
 	possibleTransitions := m.PossibleTransitions()
 	if possibleTransitions == nil {
 		return false
 	}
 
 	for _, t := range possibleTransitions {
-		if t.GetSymbol() == symbol {
-			Comp.add(m.CurrentState(), t)
+		if symbol == t.GetSymbol() {
 			return t.MakeTransition(m)
 		}
 	}
 
 	return false
-
-}
-
-func newComputationRecord(m Machine) *ComputationRecord {
-	record := ComputationRecord{
-		currentState: m.CurrentState(),
-		result:       INITIAL,
-	}
-	return &record
 }
 
 func newComputation(m Machine) *Computation {
@@ -116,14 +113,23 @@ func newComputation(m Machine) *Computation {
 	}
 }
 
+func newComputationRecord(m Machine) *ComputationRecord {
+	record := ComputationRecord{
+		lastState:    m.CurrentState(),
+		currentState: m.CurrentState(),
+		result:       INITIAL,
+	}
+	return &record
+}
+
 func (c *Computation) setResult(result string) {
 	c.History[len(c.History)-1].result = result
 }
 
-func (c *Computation) add(currentState string, trans Transition) {
+func (c *Computation) add(lastState string, currentState string) {
 	record := ComputationRecord{
+		lastState:    lastState,
 		currentState: currentState,
-		transition:   trans,
 		result:       RUNNING,
 	}
 
@@ -140,27 +146,17 @@ func (c *Computation) Stringfy() string {
 }
 
 func (cr *ComputationRecord) Stringfy() string {
-	var s string
-	if cr.transition == nil {
-		s += fmt.Sprintf("%s %s", cr.currentState, cr.result)
-	} else {
-		s += fmt.Sprintf("%s -> %s %s", cr.currentState, cr.transition.GetResultState(), cr.result)
+	if cr.result != RUNNING {
+		return fmt.Sprintf("%s %s", cr.lastState, cr.result)
 	}
 
-	return s
+	return fmt.Sprintf("%s -> %s", cr.lastState, cr.currentState)
 }
 
 func (cr *ComputationRecord) Details() map[string]string {
 	details := make(map[string]string)
-	details["CURRENT_STATE"] = cr.currentState
-	if cr.transition == nil {
-		details["NEXT_STATE"] = ""
-	} else {
-		details["NEXT_STATE"] = cr.transition.GetResultState()
-	}
-
-	details["TRANSITION"] = cr.Stringfy()
+	details["LAST_STATE"] = cr.lastState
+	details["NEXT_STATE"] = cr.currentState
 	details["RESULT"] = cr.result
-
 	return details
 }
