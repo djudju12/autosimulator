@@ -13,7 +13,7 @@ type (
 		machine.BaseMachine
 		Transitions map[string][]Transition `json:"transitions"`
 
-		_currentState string
+		currentState string
 	}
 
 	Transition struct {
@@ -27,7 +27,7 @@ func New() *Machine {
 }
 
 func (m *Machine) Init(input *collections.Fita) {
-	m._currentState = m.InitialState
+	m.currentState = m.InitialState
 	m.Input = input
 }
 
@@ -36,11 +36,11 @@ func (m *Machine) Type() int {
 }
 
 func (m *Machine) CurrentState() string {
-	return m._currentState
+	return m.currentState
 }
 
 func (m *Machine) IsLastState() bool {
-	return utils.Contains(m.FinalStates, m._currentState) && m.Input.IsLast()
+	return utils.Contains(m.FinalStates, m.currentState) && m.Input.IsLast()
 }
 
 func (m *Machine) GetStates() []string {
@@ -61,7 +61,7 @@ func (m *Machine) GetTransitions(state string) []machine.Transition {
 }
 
 func (m *Machine) PossibleTransitions() []machine.Transition {
-	return m.GetTransitions(m._currentState)
+	return m.GetTransitions(m.currentState)
 }
 
 func (m *Machine) Stacks() []*collections.Stack {
@@ -83,7 +83,7 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 		fmt.Printf("não foi possível fazer a confirmação do tipo: t.MakeTransition()")
 	}
 
-	afdMachine._currentState = t.ResultState
+	afdMachine.currentState = t.ResultState
 	return ok
 }
 

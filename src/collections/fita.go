@@ -85,7 +85,7 @@ func (f *Fita) IsLast() bool {
 
 func (f *Fita) Peek(amount int) []string {
 	if amount < 0 {
-		fmt.Printf("Amount  nao pode ser menor que 0: f.BulkRead()")
+		fmt.Printf("Amount nao pode ser menor que 0: f.BulkRead()")
 		os.Exit(1)
 	}
 

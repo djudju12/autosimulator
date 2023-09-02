@@ -3,7 +3,8 @@ package graphics
 import (
 	"autosimulator/src/collections"
 	"autosimulator/src/machine"
-	"autosimulator/src/machine/stackMachine"
+	"autosimulator/src/machine/oneStackMachine"
+	"autosimulator/src/machine/twoStackMachine"
 	"fmt"
 	"os"
 	"runtime"
@@ -147,11 +148,6 @@ func NewSDLWindow() *_SDLWindow {
 	}
 }
 
-// func (w *_SDLWindow) update() {
-// 	window := w.window
-// 	w.WIDTH, w.HEIGHT = window.GetSize()
-// }
-
 func (env *environment) Input(fita []string) {
 	env.input = append(fita, collections.TAIL_FITA)
 }
@@ -193,26 +189,21 @@ func pollEvent(env *environment) {
 }
 
 func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
-	switch event.Keysym.Sym {
-
-	case sdl.K_DOWN:
-		if event.Type == sdl.KEYDOWN {
+	if event.Type == sdl.KEYDOWN {
+		switch event.Keysym.Sym {
+		case sdl.K_DOWN:
 			ui.nextComputation()
-		}
 
-	case sdl.K_UP:
-		if event.Type == sdl.KEYDOWN {
+		case sdl.K_UP:
 			ui.previusComputation()
-		}
 
-	case sdl.K_SPACE:
-		// toggle running
-		if event.Type == sdl.KEYDOWN {
+		case sdl.K_SPACE:
+			// toggle running
 			env.running = !env.running
-		}
 
-	case sdl.K_r:
-		ui.reset(env)
+		case sdl.K_r:
+			ui.reset(env)
+		}
 	}
 }
 
@@ -372,9 +363,13 @@ func (ui *uiComponents) init(env *environment) {
 	fita := collections.FitaFromArray(env.input)
 	computation := machine.Execute(env.machine, fita)
 
+	// TODO: REFATORAR
 	if env.machine.Type() == machine.TWO_STACK_MACHINE {
-		v, _ := env.machine.(*stackMachine.Machine)
-		ui.stackA, ui.stackB = v.StackHistory()
+		machine, _ := env.machine.(*twoStackMachine.Machine)
+		ui.stackA, ui.stackB = machine.StackHistory()
+	} else if env.machine.Type() == machine.ONE_STACK_MACHINE {
+		machine, _ := env.machine.(*oneStackMachine.Machine)
+		ui.stackA = machine.StackHistory()
 	}
 
 	ui.states = machineStates(env)
@@ -459,7 +454,8 @@ func (st *stackHist) get(i int) ([]string, []string) {
 		a = st.stackA[i]
 	}
 
-	if st.stackB != nil && i < len(st.stackA) {
+	// fmt.Println(st.stackB)
+	if st.stackB != nil && i < len(st.stackB) {
 		b = st.stackB[i]
 	}
 

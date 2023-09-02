@@ -99,7 +99,12 @@ func NextTransition(m Machine, symbol string) bool {
 
 	for _, t := range possibleTransitions {
 		if symbol == t.GetSymbol() {
-			return t.MakeTransition(m)
+			result := t.MakeTransition(m)
+			if symbol == collections.TAIL_FITA {
+				return false
+			}
+
+			return result
 		}
 	}
 
@@ -151,7 +156,7 @@ func (c *Computation) Stringfy() string {
 
 func (cr *ComputationRecord) Stringfy() string {
 	if cr.result != RUNNING {
-		return fmt.Sprintf("%s %s", cr.lastState, cr.result)
+		return fmt.Sprintf("%s %s", cr.currentState, cr.result)
 	}
 
 	return fmt.Sprintf("%s -> %s", cr.lastState, cr.currentState)

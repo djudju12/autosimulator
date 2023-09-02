@@ -2,7 +2,8 @@ package reader
 
 import (
 	"autosimulator/src/machine/afdMachine"
-	"autosimulator/src/machine/stackMachine"
+	"autosimulator/src/machine/oneStackMachine"
+	"autosimulator/src/machine/twoStackMachine"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,13 +22,24 @@ func ReadMachine(path string) *afdMachine.Machine {
 	return m
 }
 
-func ReadStackMachine(path string) *stackMachine.Machine {
-	m := stackMachine.New()
+func ReadStackMachine(path string) *twoStackMachine.Machine {
+	m := twoStackMachine.New()
 	content := readFileContent(path)
 	err := json.Unmarshal(content, &m)
 	if err != nil {
 		unmarshalError(path, err)
 	}
+	return m
+}
+
+func ReadOneStackMachine(path string) *oneStackMachine.Machine {
+	m := oneStackMachine.New()
+	content := readFileContent(path)
+	err := json.Unmarshal(content, &m)
+	if err != nil {
+		unmarshalError(path, err)
+	}
+
 	return m
 }
 

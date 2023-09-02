@@ -1,4 +1,4 @@
-package stackMachine
+package twoStackMachine
 
 import (
 	"autosimulator/src/collections"
@@ -13,11 +13,11 @@ type (
 		machine.BaseMachine
 		Transitions map[string][]Transition `json:"transitions"`
 
-		_stackA        *collections.Stack
-		_stackB        *collections.Stack
-		_stackAHistory [][]string
-		_stackBHistory [][]string
-		_currentState  string
+		stackA        *collections.Stack
+		stackB        *collections.Stack
+		stackAHistory [][]string
+		stackBHistory [][]string
+		currentState  string
 	}
 
 	Transition struct {
@@ -34,33 +34,33 @@ func New() *Machine {
 	a := collections.NewStack()
 	b := collections.NewStack()
 	return &Machine{
-		_stackA:        a,
-		_stackB:        b,
-		_stackAHistory: [][]string{},
-		_stackBHistory: [][]string{},
+		stackA:        a,
+		stackB:        b,
+		stackAHistory: [][]string{},
+		stackBHistory: [][]string{},
 	}
 }
 
 func (m *Machine) Init(input *collections.Fita) {
 	m.Input = input
-	m._currentState = m.InitialState
-	m._stackA = collections.NewStack()
-	m._stackB = collections.NewStack()
-	m._stackAHistory = [][]string{}
-	m._stackBHistory = [][]string{}
+	m.currentState = m.InitialState
+	m.stackA = collections.NewStack()
+	m.stackB = collections.NewStack()
+	m.stackAHistory = [][]string{}
+	m.stackBHistory = [][]string{}
 	m.backupStacks()
-}
-
-func (m *Machine) IsLastState() bool {
-	return utils.Contains(m.FinalStates, m._currentState)
-}
-
-func (m *Machine) CurrentState() string {
-	return m._currentState
 }
 
 func (m *Machine) Type() int {
 	return machine.TWO_STACK_MACHINE
+}
+
+func (m *Machine) IsLastState() bool {
+	return utils.Contains(m.FinalStates, m.currentState)
+}
+
+func (m *Machine) CurrentState() string {
+	return m.currentState
 }
 
 func (m *Machine) GetStates() []string {
@@ -81,11 +81,11 @@ func (m *Machine) GetTransitions(state string) []machine.Transition {
 }
 
 func (m *Machine) PossibleTransitions() []machine.Transition {
-	return m.GetTransitions(m._currentState)
+	return m.GetTransitions(m.currentState)
 }
 
 func (m *Machine) Stacks() []*collections.Stack {
-	return []*collections.Stack{m._stackA, m._stackB}
+	return []*collections.Stack{m.stackA, m.stackB}
 }
 
 func (t *Transition) MakeTransition(m machine.Machine) bool {
@@ -95,8 +95,8 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 		os.Exit(1)
 	}
 
-	a := stackMachine._stackA
-	b := stackMachine._stackB
+	a := stackMachine.stackA
+	b := stackMachine.stackB
 
 	check := func(stack *collections.Stack, read string, write string) bool {
 		if read != collections.PALAVRA_VAZIA {
@@ -121,23 +121,22 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 
 	// checa os dois stacks
 	if ok = (check(a, t.ReadA, t.WriteA) && check(b, t.ReadB, t.WriteB)); ok {
-		stackMachine._currentState = t.ResultState
+		stackMachine.currentState = t.ResultState
 	}
 
 	// Salva o historico do stack
-	v, _ := m.(*Machine)
-	v.backupStacks()
+	stackMachine.backupStacks()
 
 	return ok
 }
 
 func (m *Machine) StackHistory() ([][]string, [][]string) {
-	return m._stackAHistory, m._stackBHistory
+	return m.stackAHistory, m.stackBHistory
 }
 
 func (m *Machine) backupStacks() {
-	m._stackAHistory = append(m._stackAHistory, utils.Reserve(m._stackA.Peek(m._stackA.Length())))
-	m._stackBHistory = append(m._stackBHistory, utils.Reserve(m._stackB.Peek(m._stackB.Length())))
+	m.stackAHistory = append(m.stackAHistory, utils.Reserve(m.stackA.Peek(m.stackA.Length())))
+	m.stackBHistory = append(m.stackBHistory, utils.Reserve(m.stackB.Peek(m.stackB.Length())))
 }
 
 func (t *Transition) GetSymbol() string {
