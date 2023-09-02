@@ -90,7 +90,6 @@ func Mainloop(env *environment) {
 	runtime.LockOSThread() // sdl2 precisa rodar na main thread.
 	ui.init(env)
 	for !env.terminate {
-		// env.w.update()
 		pollEvent(env)
 		draw(env)
 		sdl.Delay(1000 / FPS_DEFAULT)
@@ -411,13 +410,17 @@ func drawNodes(env *environment) error {
 }
 
 func bufferMe(input []string, index int) []string {
+	// Se há apenas 1 caracter na fita
 	if len(input)-index < 1 {
 		return []string{input[len(input)-1]}
 	}
-	if len(input) < TAMANHO_ESTRUTURAS {
+
+	// Se a fita é menor que o tamanho da estrutura
+	if (len(input) - index) < TAMANHO_ESTRUTURAS {
 		return input[index:]
 	}
-	return input[index : TAMANHO_ESTRUTURAS-1]
+
+	return input[index : index+TAMANHO_ESTRUTURAS]
 }
 
 func (w *_SDLWindow) textSurface(text string, color sdl.Color) (*sdl.Surface, error) {
@@ -452,11 +455,17 @@ func (st *stackHist) get(i int) ([]string, []string) {
 	var b []string
 	if st.stackA != nil && i < len(st.stackA) {
 		a = st.stackA[i]
+		if len(a) > TAMANHO_ESTRUTURAS {
+			a = a[len(a)-TAMANHO_ESTRUTURAS:]
+		}
 	}
 
 	// fmt.Println(st.stackB)
 	if st.stackB != nil && i < len(st.stackB) {
 		b = st.stackB[i]
+		if len(b) > TAMANHO_ESTRUTURAS {
+			b = b[len(b)-TAMANHO_ESTRUTURAS:]
+		}
 	}
 
 	return a, b
