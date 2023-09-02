@@ -71,7 +71,7 @@ func (m *Machine) GetTransitions(state string) []machine.Transition {
 	transitions := m.Transitions[state]
 	result := make([]machine.Transition, len(transitions))
 
-	// Necessarios pois  interaces possuem diferentes layouts in
+	// Necessarios pois interfaces possuem diferentes layouts in
 	// memory que concrete types.
 	for i := range transitions {
 		result[i] = &transitions[i]
