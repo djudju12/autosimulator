@@ -11,7 +11,6 @@ func main() {
 	m := reader.ReadOneStackMachine("/home/jonathan/programacao/autosimulator/src/machine/oneStackMachine/one_stack_machine_example.json")
 	window := graphics.NewSDLWindow()
 	environment := graphics.PopulateEnvironment(window, m)
-	environment.Input([]string{"a", "a", "a", "b", "b", "b"})
 	// environment.Input([]string{"a", "a", "a", "b"})
 	graphics.Mainloop(environment)
 }
