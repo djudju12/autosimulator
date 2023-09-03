@@ -2,7 +2,6 @@ package graphics
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 
 	"github.com/veandco/go-sdl2/gfx"
@@ -198,10 +197,6 @@ func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState,
 		return nil
 	}
 
-	if start.X < 0 {
-		fmt.Println(fromCenter, toCenter, radius, radius+float64(radiusMiniBall))
-		fmt.Println(start, end)
-	}
 	// Desenha a linha
 	ok = gfx.ThickLineColor(renderer, start.X, start.Y, end.X, end.Y, thickness, COLOR_DEFAULT)
 	if !ok {

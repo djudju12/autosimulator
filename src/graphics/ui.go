@@ -30,7 +30,6 @@ func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	// Calculo da posicao inicial da fita/texto
 	var fitaWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
 	x := window.WIDTH - (fitaWidth*TAMANHO_ESTRUTURAS + DIMENSAO_ESTRUTURAS*8 + padx*5 + fitaWidth/4)
-	// x := window.WIDTH - padx - DIMENSAO_ESTRUTURAS*2
 	y := (window.HEIGHT - fitaWidth) - pady
 
 	// Rec representa o primeiro quadrado da fita
