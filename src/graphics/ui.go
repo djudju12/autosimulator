@@ -30,7 +30,6 @@ func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	// Calculo da posicao inicial da fita/texto
 	var fitaWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
 	x := window.WIDTH - (fitaWidth*TAMANHO_ESTRUTURAS + DIMENSAO_ESTRUTURAS*8 + padx*5 + fitaWidth/4)
-	// x := window.WIDTH - padx - DIMENSAO_ESTRUTURAS*2
 	y := (window.HEIGHT - fitaWidth) - pady
 
 	// Rec representa o primeiro quadrado da fita
@@ -138,6 +137,7 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 		if err != nil {
 			return err
 		}
+
 		switch direction {
 		case TEXT_UP_CENTER:
 			x = x1 - fontW/2
@@ -159,8 +159,10 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 			H: fontH,
 		}
 
-		// drawRect(window.renderer, 2, *textRect, COLOR_DEFAULT)
 		window.renderer.Copy(textTexture, nil, textRect)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

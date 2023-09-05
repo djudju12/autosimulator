@@ -5,6 +5,7 @@ import (
 	"autosimulator/src/machine"
 	"autosimulator/src/machine/oneStackMachine"
 	"autosimulator/src/machine/twoStackMachine"
+	"autosimulator/src/reader"
 	"fmt"
 	"os"
 	"runtime"
@@ -15,7 +16,7 @@ import (
 
 const (
 	TITLE           = "Simulador de Autômato"
-	FONT_PATH       = "/home/jonathan/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
+	FONT_PATH       = "/home/jonathan/hd/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
 	FONT_SIZE       = 24
 	FPS_DEFAULT     = 60
 	WITDH, HEIGHT   = 580, 750
@@ -180,6 +181,9 @@ func pollEvent(env *environment) {
 		case *sdl.MouseMotionEvent:
 			handleMouseMotionEvent(env)
 
+		case *sdl.DropEvent:
+			handleDropEvent(event, env)
+
 		default:
 		}
 
@@ -202,6 +206,8 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 
 		case sdl.K_r:
 			ui.reset(env)
+
+		default:
 		}
 	}
 }
@@ -248,6 +254,18 @@ func handleMouseMotionEvent(env *environment) {
 		dragInfo.selected.X = dragInfo.mousePos.X - dragInfo.clickOffset.X
 		dragInfo.selected.Y = dragInfo.mousePos.Y - dragInfo.clickOffset.Y
 	}
+}
+
+func handleDropEvent(event *sdl.DropEvent, env *environment) {
+	path := event.File
+	if path == "" {
+		return
+	}
+
+	m := reader.ReadMachine(path)
+	env.machine = m
+	ui.init(env)
+	ui.reset(env)
 }
 
 func draw(env *environment) {
