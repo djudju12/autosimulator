@@ -7,7 +7,6 @@ import (
 	"autosimulator/src/machine/twoStackMachine"
 	"autosimulator/src/reader"
 	"fmt"
-	"os"
 	"runtime"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -170,7 +169,7 @@ func pollEvent(env *environment) {
 		switch event := event.(type) {
 		case *sdl.QuitEvent:
 			fmt.Printf("Quiting....")
-			env.terminate = true
+			env.Quit()
 
 		case *sdl.KeyboardEvent:
 			handleKeyboardEvents(event, env)
@@ -262,7 +261,13 @@ func handleDropEvent(event *sdl.DropEvent, env *environment) {
 		return
 	}
 
-	m := reader.ReadMachine(path)
+	m, err := reader.ReadMachine(path)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("Nova maquina carregada com sucesso!")
 	env.machine = m
 	ui.init(env)
 	ui.reset(env)
@@ -274,19 +279,19 @@ func draw(env *environment) {
 	err := window.cleanUp()
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		env.Quit()
 	}
 
 	err = drawUi(env)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		env.Quit()
 	}
 
 	err = drawNodes(env)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		env.Quit()
 	}
 
 	window.renderer.Present()
@@ -487,6 +492,10 @@ func (st *stackHist) get(i int) ([]string, []string) {
 	}
 
 	return a, b
+}
+
+func (env *environment) Quit() {
+	env.terminate = true
 }
 
 func (ui *uiComponents) previusComputation() {

@@ -38,11 +38,11 @@ type (
 	}
 
 	BaseMachine struct {
+		Type         string   `json:"type"`
 		States       []string `json:"states"`
 		InitialState string   `json:"initialState"`
 		FinalStates  []string `json:"finalStates"`
 		Alfabet      []string `json:"alfabet"`
-		Type         string   `json:"type"`
 		Input        *collections.Fita
 	}
 
