@@ -11,8 +11,6 @@ import (
 const (
 	UP    = iota
 	RIGHT = iota
-	DOWN  = iota
-	LEFT  = iota
 )
 
 const (
@@ -22,15 +20,48 @@ const (
 )
 
 const (
-	TAMANHO_ESTRUTURAS  = 9
-	DIMENSAO_ESTRUTURAS = 32
+	TAMANHO_ESTRUTURAS        = 9
+	DIMENSAO_ESTRUTURAS       = 32
+	PADX                int32 = 5
+	PADY                int32 = 5
 )
 
-func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
+func (ui *uiComponents) drawSelectBox(window *_SDLWindow) error {
+	var amount int32 = 3
+	if ui.indexMenu < 1 {
+		ui.indexMenu = 1
+	}
+
+	if ui.indexMenu > amount {
+		ui.indexMenu = amount
+	}
+
+	var widthBox int32 = DIMENSAO_ESTRUTURAS * 6
+	rect := sdl.Rect{
+		X: WITDH/2 - widthBox/2,
+		Y: HEIGHT/2 - DIMENSAO_ESTRUTURAS*amount/2,
+		W: widthBox,
+		H: DIMENSAO_ESTRUTURAS,
+	}
+
+	err := drawBoxList(window, rect, amount, ui.indexMenu)
+	if err != nil {
+		return err
+	}
+
+	err = drawText(window, []string{"Inputs", "Machine", "Run n Inputs"}, DIMENSAO_ESTRUTURAS/2, rect.X+PADX, rect.Y+rect.H/2, TEXT_DOWN_ALIGN)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ui *uiComponents) drawFita(window *_SDLWindow) error {
 	// Calculo da posicao inicial da fita/texto
 	var fitaWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
-	x := window.WIDTH - (fitaWidth*TAMANHO_ESTRUTURAS + DIMENSAO_ESTRUTURAS*8 + padx*5 + fitaWidth/4)
-	y := (window.HEIGHT - fitaWidth) - pady
+	x := window.WIDTH - (fitaWidth*TAMANHO_ESTRUTURAS + DIMENSAO_ESTRUTURAS*8 + PADX*5 + fitaWidth/4)
+	y := (window.HEIGHT - fitaWidth) - PADY
 
 	// Rec representa o primeiro quadrado da fita
 	fitaRec := sdl.Rect{
@@ -48,12 +79,12 @@ func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	// Head da fita
 	headBase := fitaWidth / 2
 	headHeigth := headBase / 2
-	err = drawArrowDown(window.renderer, thickness, (x + fitaWidth/2), (y - pady), headBase, headHeigth, COLOR_DEFAULT)
+	err = drawArrowDown(window.renderer, thickness, (x + fitaWidth/2), (y - PADY), headBase, headHeigth, COLOR_DEFAULT)
 	if err != nil {
 		return err
 	}
 
-	// Texto]
+	// Texto
 	bufferFita := ui.bufferInput
 	err = drawText(window, bufferFita, fitaWidth, (x + fitaWidth/2), y, TEXT_RIGHT_CENTER)
 	if err != nil {
@@ -64,16 +95,16 @@ func (ui *uiComponents) drawFita(window *_SDLWindow, padx, pady int32) error {
 	return nil
 }
 
-func (env *environment) drawStacks(hist *stackHist, histIndex int, padx, pady int32) error {
+func (ui *uiComponents) drawStacks(window *_SDLWindow) error {
 	var err error
-	a, b := hist.get(histIndex)
-	err = env.drawStack(a, 1, padx, pady)
+	a, b := ui.stackHist.get(ui.indexComputation)
+	err = ui.drawStack(window, a, 1)
 	if err != nil {
 		return err
 	}
 
 	if b != nil {
-		err = env.drawStack(b, 2, padx, pady)
+		err = ui.drawStack(window, b, 2)
 		if err != nil {
 			return err
 		}
@@ -82,13 +113,12 @@ func (env *environment) drawStacks(hist *stackHist, histIndex int, padx, pady in
 	return nil
 }
 
-func (env *environment) drawStack(stack []string, index, padx, pady int32) error {
-	window := env.w
+func (ui *uiComponents) drawStack(window *_SDLWindow, stack []string, index int32) error {
 
 	// Calculo da posicao inicial do stack/texto
 	var stackWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
-	x := window.WIDTH - (padx+stackWidth)*index
-	y := window.HEIGHT - (pady + stackWidth*TAMANHO_ESTRUTURAS)
+	x := window.WIDTH - (PADX+stackWidth)*index
+	y := window.HEIGHT - (PADY + stackWidth*TAMANHO_ESTRUTURAS)
 
 	// Esse rec represeta o primeiro quadrado do stack
 	oneStackCointainer := sdl.Rect{
@@ -112,6 +142,90 @@ func (env *environment) drawStack(stack []string, index, padx, pady int32) error
 	}
 
 	// Para manter uma referencia dos ponteiros que vou precisar liberar
+	return nil
+}
+
+func (ui *uiComponents) drawHist(window *_SDLWindow) error {
+	var amount int32 = 3
+	var histWidth int32 = DIMENSAO_ESTRUTURAS * 6
+	x := window.WIDTH - (DIMENSAO_ESTRUTURAS*2 + PADX*3 + histWidth)
+	y := window.HEIGHT - PADY - DIMENSAO_ESTRUTURAS*amount
+	rect := sdl.Rect{
+		X: x,
+		Y: y,
+		W: histWidth,
+		H: DIMENSAO_ESTRUTURAS,
+	}
+
+	err := drawBoxList(window, rect, amount, 2)
+	if err != nil {
+		return err
+	}
+
+	yText := y + rect.H/2
+	err = ui.drawHistText(window, x, yText)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ui *uiComponents) drawHistText(window *_SDLWindow, x, y int32) error {
+	index := ui.indexComputation
+
+	var upper string = "---"
+	if index < len(ui.bufferComputation.History)-1 {
+		upper = ui.bufferComputation.History[index+1].Stringfy()
+	}
+
+	mid := ui.bufferComputation.History[index].Stringfy()
+
+	var bottom string = "---"
+	if index > 0 {
+		bottom = ui.bufferComputation.History[index-1].Stringfy()
+	}
+
+	err := drawText(window, []string{bottom, mid, upper}, DIMENSAO_ESTRUTURAS/2, x+PADX, y, TEXT_DOWN_ALIGN)
+	return err
+}
+
+func drawBoxList(window *_SDLWindow, rect sdl.Rect, amount, headPos int32) error {
+	var thickness int32 = 2
+	if headPos > amount {
+		return fmt.Errorf("a posicao da cabeça da seta não pode ser maior que a quantidade de elementos na BoxList")
+	}
+
+	yArrow := (rect.Y - rect.H/2) + (rect.H * headPos)
+	headBase := rect.H / 2
+	headHeigth := headBase / 2
+
+	err := drawArrowRight(window.renderer, thickness, rect.X-PADX, yArrow, headBase, headHeigth, COLOR_DEFAULT)
+	if err != nil {
+		return err
+	}
+
+	err = drawManyRects(window.renderer, thickness, int(amount), UP, rect, COLOR_DEFAULT)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func drawArrowRight(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color) error {
+	var ok bool
+	errText := "nao foi possível desenhar a flecha"
+	ok = gfx.ThickLineColor(renderer, x, y, x-heigth, y-base/2, thickness, color)
+	if !ok {
+		return errors.New(errText)
+	}
+
+	ok = gfx.ThickLineColor(renderer, x, y, x-heigth, y+base/2, thickness, color)
+	if !ok {
+		return errors.New(errText)
+	}
+
 	return nil
 }
 
@@ -179,9 +293,6 @@ func drawManyRects(renderer *sdl.Renderer, thickness int32, amount, direction in
 		case UP:
 			x = rect.X
 			y = rect.Y + (rect.H * i)
-		case DOWN:
-			x = rect.X
-			y = rect.Y - (rect.H * i)
 		case RIGHT:
 			x = rect.X + (rect.W * i)
 			y = rect.Y
@@ -222,22 +333,6 @@ func drawRect(renderer *sdl.Renderer, thickness int32, rect sdl.Rect, color sdl.
 	return nil
 }
 
-func drawArrowRight(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color) error {
-	var ok bool
-	errText := "nao foi possível desenhar a flecha"
-	ok = gfx.ThickLineColor(renderer, x, y, x-heigth, y-base/2, thickness, color)
-	if !ok {
-		return errors.New(errText)
-	}
-
-	ok = gfx.ThickLineColor(renderer, x, y, x-heigth, y+base/2, thickness, color)
-	if !ok {
-		return errors.New(errText)
-	}
-
-	return nil
-}
-
 func drawArrowDown(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color) error {
 	var ok bool
 	errText := "nao foi possível desenhar a flecha"
@@ -252,60 +347,4 @@ func drawArrowDown(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, 
 	}
 
 	return nil
-}
-
-func (ui *uiComponents) drawHist(window *_SDLWindow, padx, pady int32) error {
-
-	var amount int32 = 3
-	var thickness int32 = 2
-	var histWidth int32 = DIMENSAO_ESTRUTURAS * 6
-	x := window.WIDTH - (DIMENSAO_ESTRUTURAS*2 + padx*3 + histWidth)
-	y := window.HEIGHT - pady - DIMENSAO_ESTRUTURAS
-	rect := sdl.Rect{
-		X: x,
-		Y: y,
-		W: histWidth,
-		H: DIMENSAO_ESTRUTURAS,
-	}
-
-	yText := (y + rect.H/2) - ((amount - 1) * rect.H)
-	yArrow := (y + rect.H/2) - rect.H
-	headBase := rect.H / 2
-	headHeigth := headBase / 2
-
-	err := drawArrowRight(window.renderer, thickness, x-padx, yArrow, headBase, headHeigth, COLOR_DEFAULT)
-	if err != nil {
-		return err
-	}
-
-	err = drawManyRects(window.renderer, thickness, int(amount), DOWN, rect, COLOR_DEFAULT)
-	if err != nil {
-		return err
-	}
-
-	err = ui.drawHistText(window, x, yText, padx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ui *uiComponents) drawHistText(window *_SDLWindow, x, y, padx int32) error {
-	index := ui.indexComputation
-
-	var upper string = "---"
-	if index < len(ui.bufferComputation.History)-1 {
-		upper = ui.bufferComputation.History[index+1].Stringfy()
-	}
-
-	mid := ui.bufferComputation.History[index].Stringfy()
-
-	var bottom string = "---"
-	if index > 0 {
-		bottom = ui.bufferComputation.History[index-1].Stringfy()
-	}
-
-	err := drawText(window, []string{bottom, mid, upper}, DIMENSAO_ESTRUTURAS/2, x+padx, y, TEXT_DOWN_ALIGN)
-	return err
 }

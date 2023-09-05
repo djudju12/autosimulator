@@ -29,6 +29,7 @@ type (
 		input     []string
 		terminate bool
 		running   bool
+		menuMode  bool
 	}
 
 	_SDLWindow struct {
@@ -43,6 +44,7 @@ type (
 	uiComponents struct {
 		states            map[string]*graphicalState
 		bufferComputation machine.Computation
+		indexMenu         int32
 		dragInfo          *drag
 		computationHist
 		*stackHist
@@ -68,6 +70,7 @@ type (
 
 var (
 	ui *uiComponents = &uiComponents{
+		indexMenu: 1,
 		stackHist: &stackHist{
 			[][]string{},
 			[][]string{},
@@ -191,27 +194,58 @@ func pollEvent(env *environment) {
 }
 
 func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
-	if event.Type == sdl.KEYDOWN {
+	// Por simplicidade vou lidar apenas com teclas apertadas
+	if event.Type != sdl.KEYDOWN {
+		return
+	}
+
+	if env.menuMode {
 		switch event.Keysym.Sym {
-		case sdl.K_DOWN:
-			ui.nextComputation()
-
 		case sdl.K_UP:
-			ui.previusComputation()
+			ui.indexMenu--
 
-		case sdl.K_SPACE:
-			// toggle running
-			env.running = !env.running
+		case sdl.K_DOWN:
+			ui.indexMenu++
 
-		case sdl.K_r:
-			ui.reset(env)
+		case sdl.K_RETURN:
+			env.menuMode = false
+
+		case sdl.K_m:
+			env.menuMode = false
+			ui.indexMenu = 1
 
 		default:
 		}
+
+		return
+	}
+
+	switch event.Keysym.Sym {
+	case sdl.K_DOWN:
+		ui.nextComputation()
+
+	case sdl.K_UP:
+		ui.previusComputation()
+
+	case sdl.K_SPACE:
+		// toggle running
+		env.running = !env.running
+
+	case sdl.K_r:
+		ui.reset(env)
+
+	case sdl.K_m:
+		env.menuMode = !env.menuMode
+
+	default:
 	}
 }
 
 func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
+	if env.menuMode {
+		return
+	}
+
 	dragInfo := ui.dragInfo
 	mousePos := dragInfo.mousePos
 	states := ui.states
@@ -246,6 +280,10 @@ func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
 }
 
 func handleMouseMotionEvent(env *environment) {
+	if env.menuMode {
+		return
+	}
+
 	x, y, _ := sdl.GetMouseState()
 	dragInfo := ui.dragInfo
 	dragInfo.mousePos = &sdl.Point{X: x, Y: y}
@@ -256,6 +294,10 @@ func handleMouseMotionEvent(env *environment) {
 }
 
 func handleDropEvent(event *sdl.DropEvent, env *environment) {
+	if env.menuMode {
+		return
+	}
+
 	path := event.File
 	if path == "" {
 		return
@@ -313,24 +355,28 @@ func (w *_SDLWindow) cleanUp() error {
 }
 
 func drawUi(env *environment) error {
-	var padx, pady int32 = 5, 5
-	err := ui.drawFita(env.w, padx, pady)
+	err := ui.drawFita(env.w)
 	if err != nil {
 		return err
 	}
 
 	machineType := env.machine.Type()
 	if machineType != machine.SIMPLE_MACHINE {
-		err = env.drawStacks(ui.stackHist, ui.indexComputation, padx, pady)
+		err = ui.drawStacks(env.w)
 		if err != nil {
 			return err
 		}
 
 	}
 
-	err = ui.drawHist(env.w, padx, pady)
+	err = ui.drawHist(env.w)
 	if err != nil {
 		return err
+	}
+
+	// TODO:
+	if env.menuMode {
+		ui.drawSelectBox(env.w)
 	}
 
 	return nil
