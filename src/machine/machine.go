@@ -85,7 +85,7 @@ func Execute(m Machine, fita *collections.Fita) *Computation {
 	comp.setResult(m)
 
 	// Pritna o histórico da computação
-	fmt.Println(comp.Stringfy())
+	fmt.Printf("Fita: %s\nResultado:\n%s\n", fita.Stringfy(), comp.Stringfy())
 	return comp
 }
 

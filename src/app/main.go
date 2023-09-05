@@ -1,14 +1,16 @@
 package main
 
 import (
+	"autosimulator/src/collections"
 	"autosimulator/src/graphics"
 	"autosimulator/src/reader"
 )
 
 func main() {
-	m, _ := reader.ReadMachine("/home/jonathan/hd/programacao/autosimulator/examples/machine_example.json")
+	m, _ := reader.ReadMachine("examples/two_stack_machine_example.json")
 	window := graphics.NewSDLWindow()
 	environment := graphics.PopulateEnvironment(window, m)
-	environment.Input([]string{"a", "a", "a", "b"})
+	fita := collections.FitaFromArray([]string{"a", "a", "a", "b", "b", "b"})
+	environment.Input(fita)
 	graphics.Mainloop(environment)
 }

@@ -1,17 +1,17 @@
 package reader
 
 import (
+	"autosimulator/src/collections"
 	"autosimulator/src/machine"
 	"autosimulator/src/machine/afdMachine"
 	"autosimulator/src/machine/oneStackMachine"
 	"autosimulator/src/machine/twoStackMachine"
 	"autosimulator/src/utils"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
 )
 
 func ReadMachine(path string) (machine.Machine, error) {
@@ -47,6 +47,28 @@ func ReadMachine(path string) (machine.Machine, error) {
 	}
 
 	return m, nil
+}
+
+func ReadInputs(path string) ([]*collections.Fita, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	inputs, err := csv.NewReader(file).ReadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*collections.Fita
+	for _, input := range inputs {
+		result = append(result, collections.FitaFromArray(input))
+	}
+
+	return result, nil
+
 }
 
 func ReadSimpleMachine(path string) (*afdMachine.Machine, error) {
@@ -100,14 +122,12 @@ func unmarshalError(path string, err error) error {
 
 func readFileContent(path string) ([]byte, error) {
 	file, err := os.Open(path)
-
-	if strings.ToLower(filepath.Ext(path)) != ".json" {
-		return nil, fmt.Errorf("arquivo deve ser em formato JSON")
-	}
+	defer file.Close()
 
 	if err != nil {
 		return nil, fmt.Errorf("erro ao tentar abrir o arquivo: %s", path)
 	}
+
 	content, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao tentar ler o conteudo do arquivo: %s. err: %s", path, err)

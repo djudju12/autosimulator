@@ -14,7 +14,7 @@ const (
 )
 
 const (
-	TEXT_DOWN_ALIGN   = iota
+	TEXT_DOWN_LEFT    = iota
 	TEXT_RIGHT_CENTER = iota
 	TEXT_UP_CENTER    = iota
 )
@@ -25,6 +25,15 @@ const (
 	PADX                int32 = 5
 	PADY                int32 = 5
 )
+
+func (ui *uiComponents) waitForFile(window *_SDLWindow) error {
+	err := drawText(window, []string{"Aguardando o arquivo..."}, 0, WITDH/2, HEIGHT/2, TEXT_UP_CENTER)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (ui *uiComponents) drawSelectBox(window *_SDLWindow) error {
 	var amount int32 = 3
@@ -49,7 +58,7 @@ func (ui *uiComponents) drawSelectBox(window *_SDLWindow) error {
 		return err
 	}
 
-	err = drawText(window, []string{"Inputs", "Machine", "Run n Inputs"}, DIMENSAO_ESTRUTURAS/2, rect.X+PADX, rect.Y+rect.H/2, TEXT_DOWN_ALIGN)
+	err = drawText(window, []string{"Inputs", "Machine", "Run n Inputs"}, DIMENSAO_ESTRUTURAS/2, rect.X+PADX, rect.Y+rect.H/2, TEXT_DOWN_LEFT)
 	if err != nil {
 		return err
 	}
@@ -186,7 +195,7 @@ func (ui *uiComponents) drawHistText(window *_SDLWindow, x, y int32) error {
 		bottom = ui.bufferComputation.History[index-1].Stringfy()
 	}
 
-	err := drawText(window, []string{bottom, mid, upper}, DIMENSAO_ESTRUTURAS/2, x+PADX, y, TEXT_DOWN_ALIGN)
+	err := drawText(window, []string{bottom, mid, upper}, DIMENSAO_ESTRUTURAS/2, x+PADX, y, TEXT_DOWN_LEFT)
 	return err
 }
 
@@ -259,7 +268,7 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 		case TEXT_RIGHT_CENTER:
 			x = x1 + (space * int32(i)) - fontW/2
 			y = y1
-		case TEXT_DOWN_ALIGN:
+		case TEXT_DOWN_LEFT:
 			x = x1
 			y = y1 + ((space + fontH/2) * int32(i)) - fontH/2
 		default:

@@ -36,10 +36,6 @@ func (f *Fita) Read() string {
 	return value
 }
 
-func (f *Fita) Print() {
-	fmt.Printf("%s\n", f.Peek(f.Length()))
-}
-
 func (f *Fita) Reset() {
 	f.current = f.first
 }
@@ -102,4 +98,28 @@ func (f *Fita) Peek(amount int) []string {
 	}
 
 	return result
+}
+
+func (f *Fita) ToArray() []string {
+	var result []string
+	var value interface{}
+	node := f.first
+	for node != nil {
+		value = node.value
+		result = append(result, value.(string))
+		node = node.next
+	}
+
+	return result
+}
+
+func (f *Fita) Stringfy() string {
+	var s string
+	current := f.first
+	for current != nil {
+		s += fmt.Sprintf("%s ", current.value)
+		current = current.next
+	}
+
+	return s
 }

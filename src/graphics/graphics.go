@@ -26,10 +26,9 @@ type (
 	environment struct {
 		w         *_SDLWindow
 		machine   machine.Machine
-		input     []string
+		input     *collections.Fita
 		terminate bool
 		running   bool
-		menuMode  bool
 	}
 
 	_SDLWindow struct {
@@ -45,6 +44,8 @@ type (
 		states            map[string]*graphicalState
 		bufferComputation machine.Computation
 		indexMenu         int32
+		waitingFile       bool
+		menuMode          bool
 		dragInfo          *drag
 		computationHist
 		*stackHist
@@ -150,8 +151,8 @@ func NewSDLWindow() *_SDLWindow {
 	}
 }
 
-func (env *environment) Input(fita []string) {
-	env.input = append(fita, collections.TAIL_FITA)
+func (env *environment) Input(fita *collections.Fita) {
+	env.input = fita
 }
 
 func (env *environment) Destroy() {
@@ -199,7 +200,16 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 		return
 	}
 
-	if env.menuMode {
+	if ui.waitingFile {
+		if event.Keysym.Sym == sdl.K_ESCAPE {
+			ui.waitingFile = false
+			ui.indexMenu = 1
+		}
+
+		return
+	}
+
+	if ui.menuMode {
 		switch event.Keysym.Sym {
 		case sdl.K_UP:
 			ui.indexMenu--
@@ -208,10 +218,11 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 			ui.indexMenu++
 
 		case sdl.K_RETURN:
-			env.menuMode = false
+			ui.menuMode = false
+			ui.waitingFile = true
 
 		case sdl.K_m:
-			env.menuMode = false
+			ui.menuMode = false
 			ui.indexMenu = 1
 
 		default:
@@ -235,14 +246,14 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 		ui.reset(env)
 
 	case sdl.K_m:
-		env.menuMode = !env.menuMode
+		ui.menuMode = !ui.menuMode
 
 	default:
 	}
 }
 
 func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
-	if env.menuMode {
+	if ui.menuMode || ui.waitingFile {
 		return
 	}
 
@@ -280,7 +291,7 @@ func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
 }
 
 func handleMouseMotionEvent(env *environment) {
-	if env.menuMode {
+	if ui.menuMode || ui.waitingFile {
 		return
 	}
 
@@ -294,7 +305,7 @@ func handleMouseMotionEvent(env *environment) {
 }
 
 func handleDropEvent(event *sdl.DropEvent, env *environment) {
-	if env.menuMode {
+	if !ui.waitingFile {
 		return
 	}
 
@@ -303,16 +314,36 @@ func handleDropEvent(event *sdl.DropEvent, env *environment) {
 		return
 	}
 
-	m, err := reader.ReadMachine(path)
-	if err != nil {
-		fmt.Println(err)
-		return
+	switch ui.indexMenu {
+	case 1:
+		fmt.Printf("TODO: IMPLEMENTAR TROCA DE INPUT")
+	case 2:
+		m, err := reader.ReadMachine(path)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		fmt.Println("Nova maquina carregada com sucesso!")
+		env.machine = m
+		ui.init(env)
+
+	case 3:
+		inputs, err := reader.ReadInputs(path)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		for _, input := range inputs {
+			go machine.Execute(env.machine, input)
+		}
+
+	default:
 	}
 
-	fmt.Println("Nova maquina carregada com sucesso!")
-	env.machine = m
-	ui.init(env)
-	ui.reset(env)
+	ui.waitingFile = false
+	ui.indexMenu = 1
 }
 
 func draw(env *environment) {
@@ -374,9 +405,18 @@ func drawUi(env *environment) error {
 		return err
 	}
 
-	// TODO:
-	if env.menuMode {
-		ui.drawSelectBox(env.w)
+	if ui.menuMode {
+		err = ui.drawSelectBox(env.w)
+		if err != nil {
+			return err
+		}
+	}
+
+	if ui.waitingFile {
+		err = ui.waitForFile(env.w)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -400,7 +440,7 @@ func (ui *uiComponents) update(env *environment) {
 	}
 
 	// Atualiza o buffer que printa a fita
-	ui.bufferInput = bufferMe(env.input, ui.indexComputation)
+	ui.bufferInput = ajustBufferInput(env.input, ui.indexComputation)
 
 	// Historico da computação atual
 	record := ui.bufferComputation.History[ui.indexComputation]
@@ -427,9 +467,9 @@ func (ui *uiComponents) init(env *environment) {
 		mousePos:      &sdl.Point{X: 0, Y: 0},
 	}
 
-	bufferInput := bufferMe(env.input, 0)
-	fita := collections.FitaFromArray(env.input)
-	computation := machine.Execute(env.machine, fita)
+	env.input.Reset()
+	bufferInput := ajustBufferInput(env.input, 0)
+	computation := machine.Execute(env.machine, env.input)
 
 	// TODO: REFATORAR
 	if env.machine.Type() == machine.TWO_STACK_MACHINE {
@@ -455,7 +495,7 @@ func (ui *uiComponents) init(env *environment) {
 }
 
 func (ui *uiComponents) reset(env *environment) {
-	bufferInput := bufferMe(env.input, 0)
+	bufferInput := ajustBufferInput(env.input, 0)
 	ui.bufferInput = bufferInput
 	ui.indexComputation = 0
 	initial := ui.bufferComputation.History[0]
@@ -478,18 +518,19 @@ func drawNodes(env *environment) error {
 	return nil
 }
 
-func bufferMe(input []string, index int) []string {
+func ajustBufferInput(input *collections.Fita, index int) []string {
 	// Se há apenas 1 caracter na fita
-	if len(input)-index < 1 {
-		return []string{input[len(input)-1]}
+	arrayInput := input.ToArray()
+	if len(arrayInput)-index < 1 {
+		return []string{arrayInput[len(arrayInput)-1]}
 	}
 
 	// Se a fita é menor que o tamanho da estrutura
-	if (len(input) - index) < TAMANHO_ESTRUTURAS {
-		return input[index:]
+	if (len(arrayInput) - index) < TAMANHO_ESTRUTURAS {
+		return arrayInput[index:]
 	}
 
-	return input[index : index+TAMANHO_ESTRUTURAS]
+	return arrayInput[index : index+TAMANHO_ESTRUTURAS]
 }
 
 func (w *_SDLWindow) textSurface(text string, color sdl.Color) (*sdl.Surface, error) {

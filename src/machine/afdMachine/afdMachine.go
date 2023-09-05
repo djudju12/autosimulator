@@ -48,7 +48,7 @@ func (m *Machine) CurrentState() string {
 }
 
 func (m *Machine) InLastState() bool {
-	return utils.Contains(m.FinalStates, m.currentState) && m.Input.IsLast()
+	return utils.Contains(m.FinalStates, m.currentState) //&& m.Input.IsLast()
 }
 
 func (m *Machine) GetStates() []string {
