@@ -478,6 +478,9 @@ func (ui *uiComponents) init(env *environment) {
 	} else if env.machine.Type() == machine.ONE_STACK_MACHINE {
 		machine, _ := env.machine.(*oneStackMachine.Machine)
 		ui.stackA = machine.StackHistory()
+		if ui.stackB != nil {
+			ui.stackB = nil
+		}
 	}
 
 	ui.states = machineStates(env)
