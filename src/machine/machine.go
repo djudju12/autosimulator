@@ -20,10 +20,12 @@ const (
 
 type (
 	Machine interface {
-		Init(input *collections.Fita)
 		Type() int
+		GetInitialState() string
+		GetFinalStates() []string
+		Init(input *collections.Fita)
 		Stacks() []*collections.Stack
-		IsLastState() bool
+		InLastState() bool
 		PossibleTransitions() []Transition
 		CurrentState() string
 		GetTransitions(state string) []Transition
@@ -128,7 +130,7 @@ func newComputationRecord(m Machine) *ComputationRecord {
 }
 
 func (c *Computation) setResult(m Machine) {
-	if m.IsLastState() {
+	if m.InLastState() {
 		c.History[len(c.History)-1].result = ACCEPTED
 	} else {
 		c.History[len(c.History)-1].result = REJECTED

@@ -33,6 +33,14 @@ func New() *Machine {
 	}
 }
 
+func (m *Machine) GetInitialState() string {
+	return m.InitialState
+}
+
+func (m *Machine) GetFinalStates() []string {
+	return m.FinalStates
+}
+
 func (m *Machine) Init(input *collections.Fita) {
 	m.Input = input
 	m.currentState = m.InitialState
@@ -45,7 +53,7 @@ func (m *Machine) Type() int {
 	return machine.ONE_STACK_MACHINE
 }
 
-func (m *Machine) IsLastState() bool {
+func (m *Machine) InLastState() bool {
 	return utils.Contains(m.FinalStates, m.currentState)
 }
 
