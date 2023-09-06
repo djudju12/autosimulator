@@ -316,7 +316,15 @@ func handleDropEvent(event *sdl.DropEvent, env *environment) {
 
 	switch ui.indexMenu {
 	case 1:
-		fmt.Printf("TODO: IMPLEMENTAR TROCA DE INPUT")
+		input, err := reader.ReadInput(path)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		env.input = input
+		ui.init(env)
+
 	case 2:
 		m, err := reader.ReadMachine(path)
 		if err != nil {
@@ -355,13 +363,13 @@ func draw(env *environment) {
 		env.Quit()
 	}
 
-	err = drawUi(env)
+	err = drawNodes(env)
 	if err != nil {
 		fmt.Println(err)
 		env.Quit()
 	}
 
-	err = drawNodes(env)
+	err = drawUi(env)
 	if err != nil {
 		fmt.Println(err)
 		env.Quit()

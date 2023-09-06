@@ -9,6 +9,7 @@ import (
 	"autosimulator/src/utils"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -69,6 +70,26 @@ func ReadInputs(path string) ([]*collections.Fita, error) {
 
 	return result, nil
 
+}
+func ReadInput(path string) (*collections.Fita, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	input, err := csv.NewReader(file).ReadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(input) > 1 {
+		return nil, errors.New("foram encontrados divers")
+	}
+
+	fmt.Println(input)
+	return collections.FitaFromArray(input[0]), nil
 }
 
 func ReadSimpleMachine(path string) (*afdMachine.Machine, error) {

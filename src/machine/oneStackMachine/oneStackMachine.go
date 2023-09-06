@@ -130,7 +130,7 @@ func (m *Machine) StackHistory() [][]string {
 }
 
 func (m *Machine) backupStacks() {
-	m.stackHistory = append(m.stackHistory, utils.Reserve(m.stack.Peek(m.stack.Length())))
+	m.stackHistory = append(m.stackHistory, utils.Reverse(m.stack.Peek(m.stack.Length())))
 }
 
 func (t *Transition) GetSymbol() string {

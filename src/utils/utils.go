@@ -67,7 +67,7 @@ func DebugFita(fita []string, index int) {
 
 }
 
-func Reserve(arr []string) []string {
+func Reverse(arr []string) []string {
 	if len(arr) == 0 {
 		return []string{}
 	}

@@ -53,7 +53,7 @@ func (ui *uiComponents) drawSelectBox(window *_SDLWindow) error {
 		H: DIMENSAO_ESTRUTURAS,
 	}
 
-	err := drawBoxList(window, rect, amount, ui.indexMenu)
+	err := drawBoxListShadow(window, rect, amount, ui.indexMenu)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (ui *uiComponents) drawSelectBox(window *_SDLWindow) error {
 
 func (ui *uiComponents) drawFita(window *_SDLWindow) error {
 	// Calculo da posicao inicial da fita/texto
-	var fitaWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
+	var fitaWidth int32 = DIMENSAO_ESTRUTURAS
 	x := window.WIDTH - (fitaWidth*TAMANHO_ESTRUTURAS + DIMENSAO_ESTRUTURAS*8 + PADX*5 + fitaWidth/4)
 	y := (window.HEIGHT - fitaWidth) - PADY
 
@@ -80,7 +80,7 @@ func (ui *uiComponents) drawFita(window *_SDLWindow) error {
 		H: fitaWidth, // É um quadrado
 	}
 
-	err := drawManyRects(window.renderer, thickness, int(TAMANHO_ESTRUTURAS), RIGHT, fitaRec, COLOR_DEFAULT)
+	err := drawManyRects(window.renderer, int(TAMANHO_ESTRUTURAS), RIGHT, fitaRec, COLOR_DEFAULT, COLOR_BACKGROUD)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (ui *uiComponents) drawFita(window *_SDLWindow) error {
 	// Head da fita
 	headBase := fitaWidth / 2
 	headHeigth := headBase / 2
-	err = drawArrowDown(window.renderer, thickness, (x + fitaWidth/2), (y - PADY), headBase, headHeigth, COLOR_DEFAULT)
+	err = drawArrowDown(window.renderer, (x + fitaWidth/2), (y - PADY), headBase, headHeigth, COLOR_DEFAULT)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func (ui *uiComponents) drawStacks(window *_SDLWindow) error {
 func (ui *uiComponents) drawStack(window *_SDLWindow, stack []string, index int32) error {
 
 	// Calculo da posicao inicial do stack/texto
-	var stackWidth, thickness int32 = DIMENSAO_ESTRUTURAS, 2
+	var stackWidth int32 = DIMENSAO_ESTRUTURAS
 	x := window.WIDTH - (PADX+stackWidth)*index
 	y := window.HEIGHT - (PADY + stackWidth*TAMANHO_ESTRUTURAS)
 
@@ -138,7 +138,7 @@ func (ui *uiComponents) drawStack(window *_SDLWindow, stack []string, index int3
 	}
 
 	// Retangulos
-	err := drawManyRects(window.renderer, thickness, int(TAMANHO_ESTRUTURAS), UP, oneStackCointainer, COLOR_DEFAULT)
+	err := drawManyRects(window.renderer, int(TAMANHO_ESTRUTURAS), UP, oneStackCointainer, COLOR_DEFAULT, COLOR_BACKGROUD)
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,6 @@ func (ui *uiComponents) drawHistText(window *_SDLWindow, x, y int32) error {
 }
 
 func drawBoxList(window *_SDLWindow, rect sdl.Rect, amount, headPos int32) error {
-	var thickness int32 = 2
 	if headPos > amount {
 		return fmt.Errorf("a posicao da cabeça da seta não pode ser maior que a quantidade de elementos na BoxList")
 	}
@@ -209,12 +208,12 @@ func drawBoxList(window *_SDLWindow, rect sdl.Rect, amount, headPos int32) error
 	headBase := rect.H / 2
 	headHeigth := headBase / 2
 
-	err := drawArrowRight(window.renderer, thickness, rect.X-PADX, yArrow, headBase, headHeigth, COLOR_DEFAULT)
+	err := drawArrowRight(window.renderer, rect.X-PADX, yArrow, headBase, headHeigth, COLOR_DEFAULT)
 	if err != nil {
 		return err
 	}
 
-	err = drawManyRects(window.renderer, thickness, int(amount), UP, rect, COLOR_DEFAULT)
+	err = drawManyRects(window.renderer, int(amount), UP, rect, COLOR_DEFAULT, COLOR_BACKGROUD)
 	if err != nil {
 		return err
 	}
@@ -222,10 +221,42 @@ func drawBoxList(window *_SDLWindow, rect sdl.Rect, amount, headPos int32) error
 	return nil
 }
 
-func drawArrowRight(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color) error {
-	var ok bool
+func drawBoxListShadow(window *_SDLWindow, rect sdl.Rect, amount, headPos int32) error {
+	colorShadow := sdl.Color{
+		R: 10,
+		G: 10,
+		B: 10,
+		A: COLOR_BACKGROUD.A,
+	}
+
+	var err error
+	shadowLength := 10
+	for i := 0; i < shadowLength; i++ {
+		shadowRect := sdl.Rect{
+			X: rect.X + int32(i),
+			Y: rect.Y + int32(i),
+			W: rect.W,
+			H: rect.H,
+		}
+
+		err = drawManyRects(window.renderer, int(amount), UP, shadowRect, colorShadow, colorShadow)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = drawBoxList(window, rect, amount, headPos)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func drawArrowRight(renderer *sdl.Renderer, x, y, base, heigth int32, color sdl.Color) error {
+	var thickness int32 = 2
 	errText := "nao foi possível desenhar a flecha"
-	ok = gfx.ThickLineColor(renderer, x, y, x-heigth, y-base/2, thickness, color)
+	ok := gfx.ThickLineColor(renderer, x, y, x-heigth, y-base/2, thickness, color)
 	if !ok {
 		return errors.New(errText)
 	}
@@ -291,9 +322,7 @@ func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction 
 	return nil
 }
 
-func drawManyRects(renderer *sdl.Renderer, thickness int32, amount, direction int, rect sdl.Rect, color sdl.Color) error {
-	thick32 := int32(thickness)
-
+func drawManyRects(renderer *sdl.Renderer, amount, direction int, rect sdl.Rect, color, bg sdl.Color) error {
 	var newRect sdl.Rect
 	var x, y, i int32
 	var err error
@@ -317,7 +346,8 @@ func drawManyRects(renderer *sdl.Renderer, thickness int32, amount, direction in
 			H: rect.H,
 		}
 
-		if err = drawRect(renderer, thick32, newRect, color); err != nil {
+		var thickness int32 = 2
+		if err = drawRect(renderer, thickness, newRect, color, bg); err != nil {
 			return err
 		}
 	}
@@ -325,10 +355,21 @@ func drawManyRects(renderer *sdl.Renderer, thickness int32, amount, direction in
 	return nil
 }
 
-func drawRect(renderer *sdl.Renderer, thickness int32, rect sdl.Rect, color sdl.Color) error {
-	// RectangleColor(renderer *sdl.Renderer, x1, y1, x2, y2 int32, color sdl.Color) bool {
-	var i, x1, y1, x2, y2 int32
+func drawRect(renderer *sdl.Renderer, thickness int32, rect sdl.Rect, color, bg sdl.Color) error {
+	// Pinta o fundo
+	err := renderer.SetDrawColor(bg.R, bg.G, bg.B, bg.A)
+	if err != nil {
+		return err
+	}
+
+	err = renderer.FillRect(&rect)
+	if err != nil {
+		return err
+	}
+
+	// Pinta as bordas
 	var ok bool
+	var i, x1, y1, x2, y2 int32
 	for i = 0; i < thickness; i++ {
 		x1 = rect.X + i
 		y1 = rect.Y + i
@@ -342,10 +383,10 @@ func drawRect(renderer *sdl.Renderer, thickness int32, rect sdl.Rect, color sdl.
 	return nil
 }
 
-func drawArrowDown(renderer *sdl.Renderer, thickness, x, y, base, heigth int32, color sdl.Color) error {
-	var ok bool
+func drawArrowDown(renderer *sdl.Renderer, x, y, base, heigth int32, color sdl.Color) error {
+	var thickness int32 = 2
 	errText := "nao foi possível desenhar a flecha"
-	ok = gfx.ThickLineColor(renderer, x, y, x-base/2, y-heigth, thickness, color)
+	ok := gfx.ThickLineColor(renderer, x, y, x-base/2, y-heigth, thickness, color)
 	if !ok {
 		return errors.New(errText)
 	}

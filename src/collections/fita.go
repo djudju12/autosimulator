@@ -72,11 +72,7 @@ func (f *Fita) Length() int {
 }
 
 func (f *Fita) IsLast() bool {
-	if f.current == nil {
-		return false
-	}
-
-	return f.current.next == nil
+	return f.current == nil
 }
 
 func (f *Fita) Peek(amount int) []string {
