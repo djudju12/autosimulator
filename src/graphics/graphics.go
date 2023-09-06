@@ -314,6 +314,7 @@ func handleDropEvent(event *sdl.DropEvent, env *environment) {
 		return
 	}
 
+	//TODO: arrumar esse switch
 	switch ui.indexMenu {
 	case 1:
 		input, err := reader.ReadInput(path)
