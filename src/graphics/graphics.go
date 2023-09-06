@@ -445,7 +445,7 @@ func (ui *uiComponents) update(env *environment) {
 
 	// Pinta todos os estados com a cor default
 	for _, state := range ui.states {
-		state.color = COLOR_DEFAULT
+		state.Color = COLOR_DEFAULT
 	}
 
 	// Atualiza o buffer que printa a fita
@@ -459,11 +459,11 @@ func (ui *uiComponents) update(env *environment) {
 	nextSate := ui.states[details["NEXT_STATE"]]
 	switch details["RESULT"] {
 	case machine.INITIAL:
-		nextSate.color = BLUE
+		nextSate.Color = BLUE
 	case machine.ACCEPTED:
-		nextSate.color = GREEN
+		nextSate.Color = GREEN
 	default:
-		nextSate.color = RED
+		nextSate.Color = RED
 	}
 
 }
@@ -501,7 +501,7 @@ func (ui *uiComponents) init(env *environment) {
 	initial := ui.bufferComputation.History[0]
 	initalDetails := initial.Details()
 	firstState := ui.states[initalDetails["LAST_STATE"]]
-	firstState.color = BLUE
+	firstState.Color = BLUE
 
 	env.running = false
 }
@@ -513,7 +513,7 @@ func (ui *uiComponents) reset(env *environment) {
 	initial := ui.bufferComputation.History[0]
 	initalDetails := initial.Details()
 	firstState := ui.states[initalDetails["LAST_STATE"]]
-	firstState.color = BLUE
+	firstState.Color = BLUE
 	env.running = false
 }
 

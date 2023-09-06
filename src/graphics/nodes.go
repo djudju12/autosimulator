@@ -12,8 +12,8 @@ import (
 type (
 	graphicalState struct {
 		*sdl.Rect
+		sdl.Color
 		state string
-		color sdl.Color
 
 		// As keys para os estados que este aponta
 		statesKeys []string
@@ -32,7 +32,7 @@ func NewState(rect *sdl.Rect, state string, color sdl.Color, statesKeys []string
 	return &graphicalState{
 		Rect:       rect,
 		state:      state,
-		color:      color,
+		Color:      color,
 		statesKeys: statesKeys,
 	}
 }
@@ -48,7 +48,7 @@ func (s *graphicalState) Draw(w *_SDLWindow, states map[string]*graphicalState) 
 
 	outerRadius := s.Rect.W / 2
 	innerRadius := (95 * outerRadius) / 100 // % do outerRadius
-	err = s.drawRing(renderer, outerRadius, innerRadius, s.color)
+	err = s.drawRing(renderer, outerRadius, innerRadius, s.Color)
 	if err != nil {
 		return err
 	}
