@@ -86,6 +86,7 @@ func Execute(m Machine, fita *collections.Fita) *Computation {
 
 	// Pritna o histórico da computação
 	fmt.Printf("Fita: %s\nResultado:\n%s\n", fita.Stringfy(), comp.Stringfy())
+	fmt.Printf("%+v\n%+v", m.Stacks()[0].Stringfy(), m.Stacks()[1].Stringfy())
 	return comp
 }
 
@@ -102,11 +103,9 @@ func NextTransition(m Machine, symbol string) bool {
 	for _, t := range possibleTransitions {
 		if symbol == t.GetSymbol() {
 			result := t.MakeTransition(m)
-			if symbol == collections.TAIL_FITA {
-				return false
+			if result {
+				return true
 			}
-
-			return result
 		}
 	}
 

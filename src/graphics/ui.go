@@ -58,7 +58,7 @@ func (ui *uiComponents) drawSelectBox(window *_SDLWindow) error {
 		return err
 	}
 
-	err = drawText(window, []string{"Mudar Fita", "Mudar Machine", "Rodar n Fitas"}, DIMENSAO_ESTRUTURAS/2, rect.X+PADX, rect.Y+rect.H/2, TEXT_DOWN_LEFT)
+	err = drawText(window, []string{"Mudar Fita", "Mudar Maquina", "Rodar n Fitas"}, DIMENSAO_ESTRUTURAS/2, rect.X+PADX, rect.Y+rect.H/2, TEXT_DOWN_LEFT)
 	if err != nil {
 		return err
 	}

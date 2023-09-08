@@ -105,37 +105,55 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 
 	a := stackMachine.stackA
 	b := stackMachine.stackB
-
-	check := func(stack *collections.Stack, read string, write string) bool {
-		if read != collections.PALAVRA_VAZIA {
-			if stack.IsEmpty() {
-				return false
-			}
-
-			current := stack.Peek(1)[0]
-			if current != read {
-				return false
-			}
-
-			stack.Pop()
+	popA := false
+	if t.ReadA != collections.PALAVRA_VAZIA {
+		if a.IsEmpty() {
+			return false
 		}
 
-		if write != collections.PALAVRA_VAZIA {
-			stack.Push(write)
+		current := a.Peek(1)[0]
+		if current != t.ReadA {
+			return false
 		}
 
-		return true
+		popA = true
 	}
 
-	// checa os dois stacks
-	if ok = (check(a, t.ReadA, t.WriteA) && check(b, t.ReadB, t.WriteB)); ok {
-		stackMachine.currentState = t.ResultState
+	popB := false
+	if t.ReadB != collections.PALAVRA_VAZIA {
+		if b.IsEmpty() {
+			return false
+		}
+
+		current := b.Peek(1)[0]
+		if current != t.ReadB {
+			return false
+		}
+
+		popB = true
 	}
 
+	if popA {
+		a.Pop()
+	}
+
+	if popB {
+		b.Pop()
+	}
+
+	if t.WriteA != collections.PALAVRA_VAZIA {
+		a.Push(t.WriteA)
+	}
+
+	if t.WriteB != collections.PALAVRA_VAZIA {
+		b.Push(t.WriteB)
+	}
+
+	stackMachine.currentState = t.GetResultState()
 	// Salva o historico do stack
 	stackMachine.backupStacks()
 
-	return ok
+	return true
 }
 
 func (m *Machine) StackHistory() ([][]string, [][]string) {

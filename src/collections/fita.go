@@ -28,7 +28,7 @@ func NewFita() *Fita {
 
 func (f *Fita) Read() string {
 	if f.current == nil {
-		return ""
+		return TAIL_FITA
 	}
 
 	value := f.current.value

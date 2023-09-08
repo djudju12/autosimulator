@@ -71,3 +71,14 @@ func (s *Stack) Peek(amout int) []string {
 
 	return result
 }
+
+func (s *Stack) Stringfy() string {
+	stack := s.Peek(s.Length())
+
+	var str string
+	for _, v := range stack {
+		str += fmt.Sprintf("%s ", v)
+	}
+
+	return str
+}

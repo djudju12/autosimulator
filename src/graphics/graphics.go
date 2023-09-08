@@ -98,7 +98,6 @@ func Mainloop(env *environment) {
 		draw(env)
 		sdl.Delay(1000 / FPS_DEFAULT)
 	}
-
 	defer env.Destroy()
 }
 
