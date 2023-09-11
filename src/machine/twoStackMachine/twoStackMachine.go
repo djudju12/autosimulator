@@ -105,32 +105,35 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 
 	a := stackMachine.stackA
 	b := stackMachine.stackB
+	isPopable := func(stack *collections.Stack, read string) bool {
+		if stack.IsEmpty() {
+			return false
+		}
+
+		// Olha o primeiro elemento do stack
+		head := stack.Peek(1)[0]
+
+		// Retorna true se for igual o elemento que deverá ser lido
+		return head == read
+	}
+
+	// Nota: Eu escolhi uma maneira um tanto estranha para verificar a transição
+	// isPopable retorna true se for necessário ler uma palavra e essa palavra
+	// esta no topo do stack. Se ela não estiver vai retornar FALSE e, como
+	// não foi possível fazer a transição, retorna da função.
+	// Se esta sendo lida a palavra vazia então não fará o pop e seguirá normalmente.
 	popA := false
 	if t.ReadA != collections.PALAVRA_VAZIA {
-		if a.IsEmpty() {
+		if popA = isPopable(a, t.ReadA); !popA {
 			return false
 		}
-
-		current := a.Peek(1)[0]
-		if current != t.ReadA {
-			return false
-		}
-
-		popA = true
 	}
 
 	popB := false
 	if t.ReadB != collections.PALAVRA_VAZIA {
-		if b.IsEmpty() {
+		if popB = isPopable(b, t.ReadB); !popB {
 			return false
 		}
-
-		current := b.Peek(1)[0]
-		if current != t.ReadB {
-			return false
-		}
-
-		popB = true
 	}
 
 	if popA {
@@ -149,7 +152,9 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 		b.Push(t.WriteB)
 	}
 
+	// Avança para o proximo estado
 	stackMachine.currentState = t.GetResultState()
+
 	// Salva o historico do stack
 	stackMachine.backupStacks()
 

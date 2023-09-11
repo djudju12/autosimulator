@@ -66,8 +66,8 @@ func Execute(m Machine, fita *collections.Fita) *Computation {
 	// Criar um registro para salvar o historico da computação
 	comp := newComputation(m)
 
-	ok := true
-	for ok {
+	var ok bool = true
+	for {
 		// Lê o proximo input
 		symbol := fita.Read()
 
@@ -76,6 +76,9 @@ func Execute(m Machine, fita *collections.Fita) *Computation {
 
 		// Faz a transição de estados
 		ok = NextTransition(m, symbol)
+		if !ok {
+			break
+		}
 
 		// Salva o histórico da transição
 		comp.add(stateBefore, m.CurrentState())
@@ -84,9 +87,9 @@ func Execute(m Machine, fita *collections.Fita) *Computation {
 	// Marca se foi aceita a entrada
 	comp.setResult(m)
 
-	// Pritna o histórico da computação
+	// Printa o histórico da computação
 	fmt.Printf("Fita: %s\nResultado:\n%s\n", fita.Stringfy(), comp.Stringfy())
-	fmt.Printf("%+v\n%+v", m.Stacks()[0].Stringfy(), m.Stacks()[1].Stringfy())
+	// fmt.Printf("%+v\n%+v", m.Stacks()[0].Stringfy(), m.Stacks()[1].Stringfy())
 	return comp
 }
 
@@ -156,11 +159,11 @@ func (c *Computation) Stringfy() string {
 }
 
 func (cr *ComputationRecord) Stringfy() string {
-	if cr.result != RUNNING {
+	if cr.result == INITIAL {
 		return fmt.Sprintf("%s %s", cr.currentState, cr.result)
 	}
 
-	return fmt.Sprintf("%s -> %s", cr.lastState, cr.currentState)
+	return fmt.Sprintf("%s -> %s %s", cr.lastState, cr.currentState, cr.result)
 }
 
 func (cr *ComputationRecord) Details() map[string]string {

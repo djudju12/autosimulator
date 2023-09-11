@@ -183,20 +183,32 @@ func (ui *uiComponents) drawHist(window *_SDLWindow) error {
 func (ui *uiComponents) drawHistText(window *_SDLWindow, x, y int32) error {
 	index := ui.indexComputation
 
+	checkSize := func(text string) string {
+		if len(text) > 13 {
+			return text[:10] + "..."
+		}
+		return text
+	}
+
 	var upper string = "---"
-	if index < len(ui.bufferComputation.History)-1 {
-		upper = ui.bufferComputation.History[index+1].Stringfy()
+	if index > 0 {
+		upper = ui.bufferComputation.History[index-1].Stringfy()
+		upper = checkSize(upper)
 	}
 
 	mid := ui.bufferComputation.History[index].Stringfy()
+	checkSize(mid)
 
 	var bottom string = "---"
-	if index > 0 {
-		bottom = ui.bufferComputation.History[index-1].Stringfy()
+	if index < len(ui.bufferComputation.History)-1 {
+		bottom = ui.bufferComputation.History[index+1].Stringfy()
+		checkSize(bottom)
 	}
 
-	err := drawText(window, []string{bottom, mid, upper}, DIMENSAO_ESTRUTURAS/2, x+PADX, y, TEXT_DOWN_LEFT)
-	return err
+	var spaceBetween int32 = DIMENSAO_ESTRUTURAS / 2
+	xCoor := x + PADX
+	yCoor := y
+	return drawText(window, []string{upper, mid, bottom}, spaceBetween, xCoor, yCoor, TEXT_DOWN_LEFT)
 }
 
 func drawBoxList(window *_SDLWindow, rect sdl.Rect, amount, headPos int32) error {

@@ -93,36 +93,33 @@ func (t *Transition) MakeTransition(m machine.Machine) bool {
 		os.Exit(1)
 	}
 
-	// checa stack
-	if ok = check(stackMachine.stack, t.Read, t.Write); ok {
-		stackMachine.currentState = t.ResultState
-	}
+	stack := stackMachine.stack
 
-	// Salva o historico do stack
-	stackMachine.backupStacks()
-
-	return ok
-}
-
-func check(stack *collections.Stack, read string, write string) bool {
-	if read != collections.PALAVRA_VAZIA {
+	if t.Read != collections.PALAVRA_VAZIA {
 		if stack.IsEmpty() {
 			return false
 		}
 
-		current := stack.Peek(1)[0]
-		if current != read {
+		// Olha o primeiro elemento do stack
+		head := stack.Peek(1)[0]
+
+		// O topo do stack não coincide com o que deveria ser lido
+		if head != t.Read {
 			return false
 		}
 
 		stack.Pop()
 	}
 
-	if write != collections.PALAVRA_VAZIA {
-		stack.Push(write)
+	if t.Write != collections.PALAVRA_VAZIA {
+		stack.Push(t.Write)
 	}
 
-	return true
+	stackMachine.currentState = t.GetResultState()
+	// Salva o historico do stack
+	stackMachine.backupStacks()
+
+	return ok
 }
 
 func (m *Machine) StackHistory() [][]string {

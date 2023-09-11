@@ -155,15 +155,15 @@ func (env *environment) Input(fita *collections.Fita) {
 }
 
 func (env *environment) Destroy() {
-	sdl.Quit()
-	ttf.Quit()
+	env.w.font.Close()
 	env.w.window.Destroy()
 	env.w.renderer.Destroy()
-	env.w.font.Close()
-
 	for _, v := range env.w.cacheWords {
 		v.Free()
 	}
+
+	ttf.Quit()
+	sdl.Quit()
 }
 
 func pollEvent(env *environment) {
@@ -574,15 +574,14 @@ func Center(rec *sdl.Rect) sdl.Point {
 func (st *stackHist) get(i int) ([]string, []string) {
 	var a []string
 	var b []string
-	if st.stackA != nil && i < len(st.stackA) {
+	if st.stackA != nil {
 		a = st.stackA[i]
 		if len(a) > TAMANHO_ESTRUTURAS {
 			a = a[len(a)-TAMANHO_ESTRUTURAS:]
 		}
 	}
 
-	// fmt.Println(st.stackB)
-	if st.stackB != nil && i < len(st.stackB) {
+	if st.stackB != nil {
 		b = st.stackB[i]
 		if len(b) > TAMANHO_ESTRUTURAS {
 			b = b[len(b)-TAMANHO_ESTRUTURAS:]
