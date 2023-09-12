@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"unicode/utf8"
 
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -17,6 +18,7 @@ import (
 const (
 	TITLE           = "Simulador de Autômato"
 	FONT_PATH       = "/home/jonathan/hd/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
+	EXAMPLES_PATH   = "/home/jonathan/hd/programacao/autosimulator/examples"
 	FONT_SIZE       = 24
 	FPS_DEFAULT     = 60
 	WITDH, HEIGHT   = 580, 750
@@ -27,8 +29,10 @@ type (
 	environment struct {
 		w         *_SDLWindow
 		machine   machine.Machine
+		input     *collections.Fita
 		terminate bool
 		running   bool
+		typing    bool
 	}
 
 	_SDLWindow struct {
@@ -116,7 +120,7 @@ var (
 	COLOR_DEFAULT   = sdl.Color{R: 235, G: 174, B: 52, A: 255}
 	COLOR_BACKGROUD = sdl.Color{R: 18, G: 18, B: 18, A: 255}
 
-	EXAMPLES_PATH = "/home/jonathan/hd/programacao/autosimulator/examples"
+	typedInput []string
 )
 
 func Mainloop(env *environment) {
@@ -136,6 +140,7 @@ func PopulateEnvironment(window *_SDLWindow, activeMachine machine.Machine) *env
 		machine:   activeMachine,
 		terminate: false,
 		running:   false,
+		input:     activeMachine.GetInput(),
 	}
 
 	return env
@@ -208,8 +213,11 @@ func pollEvent(env *environment) {
 		case *sdl.MouseMotionEvent:
 			handleMouseMotionEvent(env)
 
-		case *sdl.DropEvent:
-			handleDropEvent(event, env)
+		case *sdl.TextInputEvent:
+			if env.typing {
+				r, _ := utf8.DecodeRune(event.Text[:])
+				typedInput = append(typedInput, string(r))
+			}
 
 		default:
 		}
@@ -219,11 +227,22 @@ func pollEvent(env *environment) {
 }
 
 func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
-	// Por simplicidade vou lidar apenas com teclas apertadas
+	// Por simplicidade vou lidar apenas com teclas apertadas para baixo
 	if event.Type != sdl.KEYDOWN {
 		return
 	}
 
+	if env.typing {
+		lastTyped := event.Keysym.Sym
+		if lastTyped == sdl.K_RETURN || lastTyped == sdl.K_ESCAPE {
+			env.input = collections.FitaFromArray(typedInput)
+			ui.init(env)
+		}
+
+		return
+	}
+
+	// Eventos dos menus
 	if ui.menuMode {
 		menu := ui.menuInfo.currentMenu
 
@@ -241,12 +260,12 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 			ui.closeMenus(env)
 
 		default:
-			ui.closeMenus(env)
 		}
 
 		return
 	}
 
+	// Eventos fora do menu
 	switch event.Keysym.Sym {
 	case sdl.K_DOWN:
 		ui.nextComputation()
@@ -270,11 +289,11 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 
 func (ui *uiComponents) closeMenus(env *environment) {
 	ui.menuInfo.currentMenu.CurrentIndex = 1
-
 	ui.menuInfo.currentMenu = ui.menuInfo.menus["main"]
-	ui.menuInfo.currentMenu.CurrentIndex = 1
 	ui.menuInfo.currentType = "main"
+	ui.menuInfo.currentMenu.CurrentIndex = 1
 	ui.menuMode = false
+	env.stopTyping()
 }
 
 func (ui *uiComponents) changeMenu(env *environment) {
@@ -286,8 +305,8 @@ func (ui *uiComponents) changeMenu(env *environment) {
 			ui.menuInfo.currentMenu = ui.menuInfo.menus["explorer"]
 			ui.menuInfo.currentType = "explorer"
 		case 2:
-			ui.menuInfo.currentMenu = ui.menuInfo.menus["main"]
-			ui.menuInfo.currentType = "main"
+			ui.menuInfo.currentType = "input"
+			env.startTyping()
 		default:
 		}
 
@@ -300,12 +319,15 @@ func (ui *uiComponents) changeMenu(env *environment) {
 		}
 
 		ui.menuInfo.currentMenu.Options = nil
-		env.machine = m
+		env.loadMachine(m)
 		ui.init(env)
+
+	case "input":
+		fmt.Println("[NotImplemented] changeMenu()")
+		env.stopTyping()
 
 	default:
 	}
-
 }
 
 func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
@@ -358,57 +380,6 @@ func handleMouseMotionEvent(env *environment) {
 		dragInfo.selected.X = dragInfo.mousePos.X - dragInfo.clickOffset.X
 		dragInfo.selected.Y = dragInfo.mousePos.Y - dragInfo.clickOffset.Y
 	}
-}
-
-func handleDropEvent(event *sdl.DropEvent, env *environment) {
-	// if !ui.waitingFile {
-	// 	return
-	// }
-
-	// path := event.File
-	// if path == "" {
-	// 	return
-	// }
-
-	// //TODO: arrumar esse switch
-	// switch ui.menuInfo.currentMenu.CurrentIndex {
-	// case 1: // primeira opção do menu
-	// 	input, err := reader.ReadInput(path)
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 		break
-	// 	}
-
-	// 	env.input = input
-	// 	ui.init(env)
-
-	// case 2:
-	// 	m, err := reader.ReadMachine(path)
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 		break
-	// 	}
-
-	// 	fmt.Println("Nova maquina carregada com sucesso!")
-	// 	env.machine = m
-	// 	ui.init(env)
-
-	// case 3:
-	// 	inputs, err := reader.ReadInputs(path)
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 		break
-	// 	}
-
-	// 	for _, input := range inputs {
-	// 		go machine.Execute(env.machine, input)
-	// 	}
-
-	// default:
-	// }
-
-	// ui.waitingFile = false
-	// ui.menuInfo.currentMenu.CurrentIndex = 1
 }
 
 func draw(env *environment) {
@@ -526,7 +497,6 @@ func (ui *uiComponents) update(env *environment) {
 	default:
 		nextSate.Color = RED
 	}
-
 }
 
 func (ui *uiComponents) init(env *environment) {
@@ -538,8 +508,10 @@ func (ui *uiComponents) init(env *environment) {
 	}
 
 	ui.closeMenus(env)
-	bufferInput := ajustBufferInput(env.machine.GetInput(), 0)
-	computation := machine.Execute(env.machine, env.machine.GetInput())
+	// bufferInput := ajustBufferInput(env.machine.GetInput(), 0)
+	// computation := machine.Execute(env.machine, env.machine.GetInput())
+	bufferInput := ajustBufferInput(env.input, 0)
+	computation := machine.Execute(env.machine, env.input)
 
 	// TODO: REFATORAR
 	if env.machine.Type() == machine.TWO_STACK_MACHINE {
@@ -669,4 +641,22 @@ func (ui *uiComponents) nextComputation() {
 	if ui.indexComputation < len(ui.bufferComputation.History)-1 {
 		ui.indexComputation++
 	}
+}
+
+func (env *environment) stopTyping() {
+	env.typing = false
+}
+
+func (env *environment) startTyping() {
+	if typedInput == nil {
+		currentInput := env.input.ToArray()
+		typedInput = currentInput[:len(currentInput)-1]
+	}
+
+	env.typing = true
+}
+
+func (env *environment) loadMachine(machine machine.Machine) {
+	env.machine = machine
+	env.input = machine.GetInput()
 }

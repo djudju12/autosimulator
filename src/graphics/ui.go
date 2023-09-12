@@ -72,10 +72,6 @@ func (sb *SelectBox) draw(window *_SDLWindow) error {
 	return nil
 }
 
-// func (ui *uiComponents) drawInputMenu(window *_SDLWindow) error {
-// return fmt.Errorf("drawInputMenu() not implemented")
-// }
-
 func (ui *uiComponents) drawMenu(window *_SDLWindow) error {
 	menuType := ui.menuInfo.currentType
 	var err error
@@ -84,6 +80,8 @@ func (ui *uiComponents) drawMenu(window *_SDLWindow) error {
 		err = drawMainMenu(window, ui.menuInfo.currentMenu)
 	case "explorer":
 		err = drawExplorerMenu(window, ui.menuInfo.currentMenu)
+	case "input":
+		err = ui.drawInputField(window)
 	default:
 	}
 
@@ -122,18 +120,51 @@ func drawMainMenu(window *_SDLWindow, menuBox *SelectBox) error {
 	return menuBox.draw(window)
 }
 
+func (ui *uiComponents) drawInputField(window *_SDLWindow) error {
+	// Calculo da posicao inicial da fita/texto
+	var fitaCellWidth int32 = DIMENSAO_ESTRUTURAS
+	var y int32 = window.HEIGHT/2 - fitaCellWidth/2
+	var x int32
+	if TAMANHO_ESTRUTURAS%2 == 0 {
+		x = window.WIDTH/2 - (TAMANHO_ESTRUTURAS/2)*fitaCellWidth
+	} else {
+		x = window.WIDTH/2 - ((TAMANHO_ESTRUTURAS / 2) * fitaCellWidth) - fitaCellWidth/2
+	}
+
+	// Rec representa o primeiro quadrado da do input
+	fitaRec := sdl.Rect{
+		X: x,
+		Y: y,
+		W: fitaCellWidth,
+		H: fitaCellWidth, // É um quadrado
+	}
+
+	err := drawManyRects(window.renderer, int(TAMANHO_ESTRUTURAS), RIGHT, fitaRec, COLOR_DEFAULT, COLOR_BACKGROUD)
+	if err != nil {
+		return err
+	}
+
+	// Texto
+	err = drawText(window, typedInput, fitaCellWidth, (x + fitaCellWidth/2), y, 1, TEXT_RIGHT_CENTER)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (ui *uiComponents) drawFita(window *_SDLWindow) error {
 	// Calculo da posicao inicial da fita/texto
-	var fitaWidth int32 = DIMENSAO_ESTRUTURAS
-	x := window.WIDTH - (fitaWidth*TAMANHO_ESTRUTURAS + DIMENSAO_ESTRUTURAS*8 + PADX*5 + fitaWidth/4)
-	y := (window.HEIGHT - fitaWidth) - PADY
+	var fitaCellWidth int32 = DIMENSAO_ESTRUTURAS
+	x := window.WIDTH - PADX*5 - (fitaCellWidth * (TAMANHO_ESTRUTURAS + 8))
+	y := window.HEIGHT - fitaCellWidth - PADY
 
 	// Rec representa o primeiro quadrado da fita
 	fitaRec := sdl.Rect{
 		X: x,
 		Y: y,
-		W: fitaWidth,
-		H: fitaWidth, // É um quadrado
+		W: fitaCellWidth,
+		H: fitaCellWidth, // É um quadrado
 	}
 
 	err := drawManyRects(window.renderer, int(TAMANHO_ESTRUTURAS), RIGHT, fitaRec, COLOR_DEFAULT, COLOR_BACKGROUD)
@@ -142,16 +173,16 @@ func (ui *uiComponents) drawFita(window *_SDLWindow) error {
 	}
 
 	// Head da fita
-	headBase := fitaWidth / 2
+	headBase := fitaCellWidth / 2
 	headHeigth := headBase / 2
-	err = drawArrowDown(window.renderer, (x + fitaWidth/2), (y - PADY), headBase, headHeigth, COLOR_DEFAULT)
+	err = drawArrowDown(window.renderer, (x + fitaCellWidth/2), (y - PADY), headBase, headHeigth, COLOR_DEFAULT)
 	if err != nil {
 		return err
 	}
 
 	// Texto
 	bufferFita := ui.bufferInput
-	err = drawText(window, bufferFita, fitaWidth, (x + fitaWidth/2), y, 1, TEXT_RIGHT_CENTER)
+	err = drawText(window, bufferFita, fitaCellWidth, (x + fitaCellWidth/2), y, 1, TEXT_RIGHT_CENTER)
 	if err != nil {
 		return err
 	}
@@ -468,3 +499,8 @@ func drawArrowDown(renderer *sdl.Renderer, x, y, base, heigth int32, color sdl.C
 
 	return nil
 }
+
+// func debugDrawAxis(window *_SDLWindow) {
+// 	gfx.ThickLineColor(window.renderer, 0, HEIGHT/2, WITDH, HEIGHT/2, 2, COLOR_DEFAULT)
+// 	gfx.ThickLineColor(window.renderer, WITDH/2, 0, WITDH/2, HEIGHT, 2, COLOR_DEFAULT)
+// }
