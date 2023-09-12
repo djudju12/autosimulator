@@ -81,3 +81,20 @@ func Reverse(arr []string) []string {
 
 	return result
 }
+
+func AjustMaxLen(buffer []string, index, maxLen int) []string {
+	if len(buffer) == 0 {
+		return []string{}
+	}
+	// Se há apenas 1 caracter na fita
+	if len(buffer)-index < 1 {
+		return []string{buffer[len(buffer)-1]}
+	}
+
+	// Se a fita é menor que o tamanho da estrutura
+	if (len(buffer) - index) < maxLen {
+		return buffer[index:]
+	}
+
+	return buffer[index : index+maxLen]
+}

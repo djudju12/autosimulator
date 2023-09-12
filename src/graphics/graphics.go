@@ -6,6 +6,7 @@ import (
 	"autosimulator/src/machine/oneStackMachine"
 	"autosimulator/src/machine/twoStackMachine"
 	"autosimulator/src/reader"
+	"autosimulator/src/utils"
 	"fmt"
 	"path/filepath"
 	"runtime"
@@ -237,6 +238,12 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 		if lastTyped == sdl.K_RETURN || lastTyped == sdl.K_ESCAPE {
 			env.input = collections.FitaFromArray(typedInput)
 			ui.init(env)
+		}
+
+		if lastTyped == sdl.K_BACKSPACE {
+			if len(typedInput) > 0 {
+				typedInput = typedInput[:len(typedInput)-1]
+			}
 		}
 
 		return
@@ -566,18 +573,7 @@ func drawNodes(env *environment) error {
 
 func ajustBufferInput(input *collections.Fita, index int) []string {
 	arrayInput := input.ToArray()
-
-	// Se há apenas 1 caracter na fita
-	if len(arrayInput)-index < 1 {
-		return []string{arrayInput[len(arrayInput)-1]}
-	}
-
-	// Se a fita é menor que o tamanho da estrutura
-	if (len(arrayInput) - index) < TAMANHO_ESTRUTURAS {
-		return arrayInput[index:]
-	}
-
-	return arrayInput[index : index+TAMANHO_ESTRUTURAS]
+	return utils.AjustMaxLen(arrayInput, index, TAMANHO_ESTRUTURAS)
 }
 
 func (w *_SDLWindow) textSurface(text string, color sdl.Color) (*sdl.Surface, error) {

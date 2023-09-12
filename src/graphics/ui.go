@@ -2,6 +2,7 @@ package graphics
 
 import (
 	"autosimulator/src/reader"
+	"autosimulator/src/utils"
 	"errors"
 	"fmt"
 
@@ -145,7 +146,13 @@ func (ui *uiComponents) drawInputField(window *_SDLWindow) error {
 	}
 
 	// Texto
-	err = drawText(window, typedInput, fitaCellWidth, (x + fitaCellWidth/2), y, 1, TEXT_RIGHT_CENTER)
+	index := 0
+	if len(typedInput) > TAMANHO_ESTRUTURAS {
+		index = len(typedInput) - TAMANHO_ESTRUTURAS
+	}
+
+	buffer := utils.AjustMaxLen(typedInput, index, TAMANHO_ESTRUTURAS)
+	err = drawText(window, buffer, fitaCellWidth, (x + fitaCellWidth/2), y, 1, TEXT_RIGHT_CENTER)
 	if err != nil {
 		return err
 	}
