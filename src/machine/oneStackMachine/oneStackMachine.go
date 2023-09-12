@@ -86,6 +86,10 @@ func (m *Machine) GetStates() []string {
 	return m.States
 }
 
+func (m *Machine) GetInput() *collections.Fita {
+	return m.Input
+}
+
 func (t *Transition) MakeTransition(m machine.Machine) bool {
 	stackMachine, ok := m.(*Machine)
 	if !ok {

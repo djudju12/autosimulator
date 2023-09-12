@@ -18,6 +18,7 @@
       "#",
       "x"
    ],
+   "defaultInput": ["x", "x", "x"],
    "transitions": {
       "q0": [
          "(x, &, &, &, x, q0)",

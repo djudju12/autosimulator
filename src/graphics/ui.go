@@ -1,12 +1,21 @@
 package graphics
 
 import (
+	"autosimulator/src/reader"
 	"errors"
 	"fmt"
 
 	"github.com/veandco/go-sdl2/gfx"
 	"github.com/veandco/go-sdl2/sdl"
 )
+
+type SelectBox struct {
+	*sdl.Rect
+	CurrentIndex int32
+	MaxItems     int32
+	MaxLen       int
+	Options      []string
+}
 
 const (
 	UP    = iota
@@ -27,7 +36,8 @@ const (
 )
 
 func (ui *uiComponents) waitForFile(window *_SDLWindow) error {
-	err := drawText(window, []string{"Aguardando o arquivo..."}, 0, WITDH/2, HEIGHT/2, TEXT_UP_CENTER)
+	text := "Aguardando o arquivo..."
+	err := drawText(window, []string{text}, 0, WITDH/2, HEIGHT/2, len(text), TEXT_UP_CENTER)
 	if err != nil {
 		return err
 	}
@@ -35,35 +45,81 @@ func (ui *uiComponents) waitForFile(window *_SDLWindow) error {
 	return nil
 }
 
-func (ui *uiComponents) drawSelectBox(window *_SDLWindow) error {
-	var amount int32 = 3
-	if ui.indexMenu < 1 {
-		ui.indexMenu = 1
+func (sb *SelectBox) draw(window *_SDLWindow) error {
+	if sb.CurrentIndex < 1 {
+		sb.CurrentIndex = 1
 	}
 
-	if ui.indexMenu > amount {
-		ui.indexMenu = amount
+	if sb.CurrentIndex > sb.MaxItems {
+		sb.CurrentIndex = sb.MaxItems
 	}
 
-	var widthBox int32 = DIMENSAO_ESTRUTURAS * 6
-	rect := sdl.Rect{
-		X: WITDH/2 - widthBox/2,
-		Y: HEIGHT/2 - DIMENSAO_ESTRUTURAS*amount/2,
-		W: widthBox,
-		H: DIMENSAO_ESTRUTURAS,
+	lenOptions := int32(len(sb.Options))
+	if sb.CurrentIndex > lenOptions {
+		sb.CurrentIndex = lenOptions
 	}
 
-	err := drawBoxListShadow(window, rect, amount, ui.indexMenu)
+	err := drawBoxListShadow(window, *sb.Rect, sb.MaxItems, sb.CurrentIndex)
 	if err != nil {
 		return err
 	}
 
-	err = drawText(window, []string{"Mudar Fita", "Mudar Maquina", "Rodar n Fitas"}, DIMENSAO_ESTRUTURAS/2, rect.X+PADX, rect.Y+rect.H/2, TEXT_DOWN_LEFT)
+	err = drawText(window, sb.Options, DIMENSAO_ESTRUTURAS/2, sb.X+PADX, sb.Y+sb.H/2, sb.MaxLen, TEXT_DOWN_LEFT)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// func (ui *uiComponents) drawInputMenu(window *_SDLWindow) error {
+// return fmt.Errorf("drawInputMenu() not implemented")
+// }
+
+func (ui *uiComponents) drawMenu(window *_SDLWindow) error {
+	menuType := ui.menuInfo.currentType
+	var err error
+	switch menuType {
+	case "main":
+		err = drawMainMenu(window, ui.menuInfo.currentMenu)
+	case "explorer":
+		err = drawExplorerMenu(window, ui.menuInfo.currentMenu)
+	default:
+	}
+
+	return err
+}
+
+func drawExplorerMenu(window *_SDLWindow, menuBox *SelectBox) error {
+	// TODO: guardar até fechar
+	if menuBox.Options == nil {
+		options := reader.GetJsonList(EXAMPLES_PATH)
+		menuBox.Options = options
+	}
+
+	var widthBox int32 = DIMENSAO_ESTRUTURAS * 12
+	rect := sdl.Rect{
+		X: WITDH/2 - widthBox/2,
+		Y: HEIGHT * 0.1,
+		W: widthBox,
+		H: DIMENSAO_ESTRUTURAS,
+	}
+
+	menuBox.Rect = &rect
+	return menuBox.draw(window)
+}
+
+func drawMainMenu(window *_SDLWindow, menuBox *SelectBox) error {
+	var widthBox int32 = DIMENSAO_ESTRUTURAS * 6
+	rect := sdl.Rect{
+		X: WITDH/2 - widthBox/2,
+		Y: HEIGHT/2 - DIMENSAO_ESTRUTURAS*menuBox.MaxItems/2,
+		W: widthBox,
+		H: DIMENSAO_ESTRUTURAS,
+	}
+
+	menuBox.Rect = &rect
+	return menuBox.draw(window)
 }
 
 func (ui *uiComponents) drawFita(window *_SDLWindow) error {
@@ -95,7 +151,7 @@ func (ui *uiComponents) drawFita(window *_SDLWindow) error {
 
 	// Texto
 	bufferFita := ui.bufferInput
-	err = drawText(window, bufferFita, fitaWidth, (x + fitaWidth/2), y, TEXT_RIGHT_CENTER)
+	err = drawText(window, bufferFita, fitaWidth, (x + fitaWidth/2), y, 1, TEXT_RIGHT_CENTER)
 	if err != nil {
 		return err
 	}
@@ -145,7 +201,7 @@ func (ui *uiComponents) drawStack(window *_SDLWindow, stack []string, index int3
 
 	// Textos
 	firstCharY := y + (stackWidth * (TAMANHO_ESTRUTURAS - 1))
-	err = drawText(window, stack, stackWidth, x+stackWidth/2, firstCharY, TEXT_UP_CENTER)
+	err = drawText(window, stack, stackWidth, x+stackWidth/2, firstCharY, 1, TEXT_UP_CENTER)
 	if err != nil {
 		return err
 	}
@@ -183,32 +239,23 @@ func (ui *uiComponents) drawHist(window *_SDLWindow) error {
 func (ui *uiComponents) drawHistText(window *_SDLWindow, x, y int32) error {
 	index := ui.indexComputation
 
-	checkSize := func(text string) string {
-		if len(text) > 13 {
-			return text[:10] + "..."
-		}
-		return text
-	}
-
 	var upper string = "---"
 	if index > 0 {
 		upper = ui.bufferComputation.History[index-1].Stringfy()
-		upper = checkSize(upper)
 	}
 
 	mid := ui.bufferComputation.History[index].Stringfy()
-	checkSize(mid)
 
 	var bottom string = "---"
 	if index < len(ui.bufferComputation.History)-1 {
 		bottom = ui.bufferComputation.History[index+1].Stringfy()
-		checkSize(bottom)
 	}
 
-	var spaceBetween int32 = DIMENSAO_ESTRUTURAS / 2
 	xCoor := x + PADX
 	yCoor := y
-	return drawText(window, []string{upper, mid, bottom}, spaceBetween, xCoor, yCoor, TEXT_DOWN_LEFT)
+	maxLen := 13
+	var spaceBetween int32 = DIMENSAO_ESTRUTURAS / 2
+	return drawText(window, []string{upper, mid, bottom}, spaceBetween, xCoor, yCoor, maxLen, TEXT_DOWN_LEFT)
 }
 
 func drawBoxList(window *_SDLWindow, rect sdl.Rect, amount, headPos int32) error {
@@ -281,12 +328,23 @@ func drawArrowRight(renderer *sdl.Renderer, x, y, base, heigth int32, color sdl.
 	return nil
 }
 
-func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, direction int) error {
+func drawText(window *_SDLWindow, text []string, space, x1, y1 int32, maxLen, direction int) error {
+	checkSize := func(text string) string {
+		if len(text) > int(maxLen) {
+			return text[:maxLen]
+		}
+
+		return text
+	}
+
 	var textSurface *sdl.Surface
 	var textTexture *sdl.Texture
 	var x, y int32
 	var err error
 	for i, s := range text {
+		// Checa o tamanho da string
+		s = checkSize(s)
+
 		// Essa função checa se há a palavra no cache antes de cirar a surface
 		// O cache esta armazenado na SDLWindow
 		textSurface, err = window.textSurface(s, COLOR_DEFAULT)

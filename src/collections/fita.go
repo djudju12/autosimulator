@@ -1,6 +1,7 @@
 package collections
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 )
@@ -63,6 +64,7 @@ func FitaFromArray(value []string) *Fita {
 	for _, item := range value {
 		fita.Write(item)
 	}
+
 	fita.Write(TAIL_FITA)
 	return fita
 }
@@ -118,4 +120,15 @@ func (f *Fita) Stringfy() string {
 	}
 
 	return s
+}
+
+func (f *Fita) UnmarshalJSON(data []byte) error {
+	arr := []string{}
+	err := json.Unmarshal(data, &arr)
+	if err != nil {
+		return err
+	}
+
+	*f = *FitaFromArray(arr)
+	return nil
 }

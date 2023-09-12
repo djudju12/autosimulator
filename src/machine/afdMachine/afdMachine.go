@@ -76,6 +76,10 @@ func (m *Machine) Stacks() []*collections.Stack {
 	return nil
 }
 
+func (m *Machine) GetInput() *collections.Fita {
+	return m.Input
+}
+
 func (t *Transition) GetSymbol() string {
 	return t.Symbol
 }

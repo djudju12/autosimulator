@@ -13,41 +13,46 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 func ReadMachine(path string) (machine.Machine, error) {
-	base := &machine.BaseMachine{}
 	content, err := readFileContent(path)
 	if err != nil {
-		return nil, fmt.Errorf("não foi possível ler a maquina. err: %s", err)
+		return nil, err
 	}
 
-	err = json.Unmarshal(content, &base)
+	var m *machine.BaseMachine
+	err = json.Unmarshal(content, &m)
 	if err != nil {
-		return nil, fmt.Errorf("não foi possível ler a maquina. err: %s", err)
+		return nil, err
 	}
 
-	var m machine.Machine
-	switch base.Type {
+	if m.Input == nil {
+		return nil, fmt.Errorf("syntax error. Não há input default. Maquina: ", string(content))
+	}
+
+	var readedMachine machine.Machine
+	switch m.Type {
 	case "simple_machine":
-		m, err = ReadSimpleMachine(path)
+		readedMachine, err = ReadSimpleMachine(path)
 	case "1_stack_machine":
-		m, err = ReadOneStackMachine(path)
+		readedMachine, err = ReadOneStackMachine(path)
 	case "2_stack_machine":
-		m, err = ReadStackMachine(path)
+		readedMachine, err = ReadTwoStackMachine(path)
 	default:
-		m, err = nil, fmt.Errorf("tipo de maquina não suportado: %s", base.Type)
+		readedMachine, err = nil, fmt.Errorf("tipo de maquina não suportado: %s", m.Type)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	if err = checkStates(m); err != nil {
+	if err = checkStates(readedMachine); err != nil {
 		return nil, err
 	}
 
-	return m, nil
+	return readedMachine, nil
 }
 
 func ReadInputs(path string) ([]*collections.Fita, error) {
@@ -107,7 +112,7 @@ func ReadSimpleMachine(path string) (*afdMachine.Machine, error) {
 	return m, nil
 }
 
-func ReadStackMachine(path string) (*twoStackMachine.Machine, error) {
+func ReadTwoStackMachine(path string) (*twoStackMachine.Machine, error) {
 	m := twoStackMachine.New()
 	content, err := readFileContent(path)
 	if err != nil {
@@ -143,13 +148,12 @@ func unmarshalError(path string, err error) error {
 
 func readFileContent(path string) ([]byte, error) {
 	file, err := os.Open(path)
-	defer file.Close()
 
 	if err != nil {
 		return nil, fmt.Errorf("erro ao tentar abrir o arquivo: %s", path)
 	}
-
 	content, err := io.ReadAll(file)
+
 	if err != nil {
 		return nil, fmt.Errorf("erro ao tentar ler o conteudo do arquivo: %s. err: %s", path, err)
 	}
@@ -185,4 +189,24 @@ func checkStates(machine machine.Machine) error {
 	}
 
 	return nil
+}
+
+func GetJsonList(path string) []string {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		panic(err)
+	}
+
+	var result []string
+	for _, entry := range entries {
+		if !entry.IsDir() && isJsonExt(entry.Name()) {
+			result = append(result, entry.Name())
+		}
+	}
+
+	return result
+}
+
+func isJsonExt(fileName string) bool {
+	return strings.ToLower(fileName[len(fileName)-5:]) == ".json"
 }

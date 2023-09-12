@@ -23,6 +23,7 @@ type (
 		Type() int
 		GetInitialState() string
 		GetFinalStates() []string
+		GetInput() *collections.Fita
 		Init(input *collections.Fita)
 		Stacks() []*collections.Stack
 		InLastState() bool
@@ -40,12 +41,12 @@ type (
 	}
 
 	BaseMachine struct {
-		Type         string   `json:"type"`
-		States       []string `json:"states"`
-		InitialState string   `json:"initialState"`
-		FinalStates  []string `json:"finalStates"`
-		Alfabet      []string `json:"alfabet"`
-		Input        *collections.Fita
+		Type         string            `json:"type"`
+		States       []string          `json:"states"`
+		InitialState string            `json:"initialState"`
+		FinalStates  []string          `json:"finalStates"`
+		Alfabet      []string          `json:"alfabet"`
+		Input        *collections.Fita `json:"defaultInput"`
 	}
 
 	Computation struct {

@@ -75,6 +75,10 @@ func (m *Machine) GetStates() []string {
 	return m.States
 }
 
+func (m *Machine) GetInput() *collections.Fita {
+	return m.Input
+}
+
 func (m *Machine) GetTransitions(state string) []machine.Transition {
 	transitions := m.Transitions[state]
 	result := make([]machine.Transition, len(transitions))

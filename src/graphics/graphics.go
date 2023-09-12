@@ -7,6 +7,7 @@ import (
 	"autosimulator/src/machine/twoStackMachine"
 	"autosimulator/src/reader"
 	"fmt"
+	"path/filepath"
 	"runtime"
 
 	"github.com/veandco/go-sdl2/sdl"
@@ -26,7 +27,6 @@ type (
 	environment struct {
 		w         *_SDLWindow
 		machine   machine.Machine
-		input     *collections.Fita
 		terminate bool
 		running   bool
 	}
@@ -43,12 +43,18 @@ type (
 	uiComponents struct {
 		states            map[string]*graphicalState
 		bufferComputation machine.Computation
-		indexMenu         int32
 		waitingFile       bool
 		menuMode          bool
+		menuInfo          *menu
 		dragInfo          *drag
 		computationHist
 		*stackHist
+	}
+
+	menu struct {
+		currentMenu *SelectBox
+		currentType string
+		menus       map[string]*SelectBox
 	}
 
 	drag struct {
@@ -70,8 +76,29 @@ type (
 )
 
 var (
+	main = &SelectBox{
+		CurrentIndex: 1,
+		MaxItems:     3,
+		MaxLen:       13,
+		Options:      []string{"Maquinas", "Novo Input", "Rodar Tests"},
+	}
+
+	menus = map[string]*SelectBox{
+		"main": main,
+		"explorer": {
+			CurrentIndex: 1,
+			MaxItems:     14,
+			MaxLen:       25,
+			Options:      nil,
+		},
+	}
+
 	ui *uiComponents = &uiComponents{
-		indexMenu: 1,
+		menuInfo: &menu{
+			currentMenu: menus["main"],
+			currentType: "main",
+			menus:       menus,
+		},
 		stackHist: &stackHist{
 			[][]string{},
 			[][]string{},
@@ -88,6 +115,8 @@ var (
 
 	COLOR_DEFAULT   = sdl.Color{R: 235, G: 174, B: 52, A: 255}
 	COLOR_BACKGROUD = sdl.Color{R: 18, G: 18, B: 18, A: 255}
+
+	EXAMPLES_PATH = "/home/jonathan/hd/programacao/autosimulator/examples"
 )
 
 func Mainloop(env *environment) {
@@ -150,10 +179,6 @@ func NewSDLWindow() *_SDLWindow {
 	}
 }
 
-func (env *environment) Input(fita *collections.Fita) {
-	env.input = fita
-}
-
 func (env *environment) Destroy() {
 	env.w.font.Close()
 	env.w.window.Destroy()
@@ -199,32 +224,24 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 		return
 	}
 
-	if ui.waitingFile {
-		if event.Keysym.Sym == sdl.K_ESCAPE {
-			ui.waitingFile = false
-			ui.indexMenu = 1
-		}
-
-		return
-	}
-
 	if ui.menuMode {
+		menu := ui.menuInfo.currentMenu
+
 		switch event.Keysym.Sym {
 		case sdl.K_UP:
-			ui.indexMenu--
+			menu.CurrentIndex--
 
 		case sdl.K_DOWN:
-			ui.indexMenu++
+			menu.CurrentIndex++
 
 		case sdl.K_RETURN:
-			ui.menuMode = false
-			ui.waitingFile = true
+			ui.changeMenu(env)
 
 		case sdl.K_m:
-			ui.menuMode = false
-			ui.indexMenu = 1
+			ui.closeMenus(env)
 
 		default:
+			ui.closeMenus(env)
 		}
 
 		return
@@ -249,6 +266,46 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 
 	default:
 	}
+}
+
+func (ui *uiComponents) closeMenus(env *environment) {
+	ui.menuInfo.currentMenu.CurrentIndex = 1
+
+	ui.menuInfo.currentMenu = ui.menuInfo.menus["main"]
+	ui.menuInfo.currentMenu.CurrentIndex = 1
+	ui.menuInfo.currentType = "main"
+	ui.menuMode = false
+}
+
+func (ui *uiComponents) changeMenu(env *environment) {
+	switch ui.menuInfo.currentType {
+	case "main":
+		menuSelected := ui.menuInfo.currentMenu.CurrentIndex
+		switch menuSelected {
+		case 1:
+			ui.menuInfo.currentMenu = ui.menuInfo.menus["explorer"]
+			ui.menuInfo.currentType = "explorer"
+		case 2:
+			ui.menuInfo.currentMenu = ui.menuInfo.menus["main"]
+			ui.menuInfo.currentType = "main"
+		default:
+		}
+
+	case "explorer":
+		selectedPath := ui.menuInfo.currentMenu.CurrentIndex
+		m, err := reader.ReadMachine(filepath.Join(EXAMPLES_PATH, ui.menuInfo.currentMenu.Options[selectedPath-1]))
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		ui.menuInfo.currentMenu.Options = nil
+		env.machine = m
+		ui.init(env)
+
+	default:
+	}
+
 }
 
 func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
@@ -304,54 +361,54 @@ func handleMouseMotionEvent(env *environment) {
 }
 
 func handleDropEvent(event *sdl.DropEvent, env *environment) {
-	if !ui.waitingFile {
-		return
-	}
+	// if !ui.waitingFile {
+	// 	return
+	// }
 
-	path := event.File
-	if path == "" {
-		return
-	}
+	// path := event.File
+	// if path == "" {
+	// 	return
+	// }
 
-	//TODO: arrumar esse switch
-	switch ui.indexMenu {
-	case 1:
-		input, err := reader.ReadInput(path)
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
+	// //TODO: arrumar esse switch
+	// switch ui.menuInfo.currentMenu.CurrentIndex {
+	// case 1: // primeira opção do menu
+	// 	input, err := reader.ReadInput(path)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		break
+	// 	}
 
-		env.input = input
-		ui.init(env)
+	// 	env.input = input
+	// 	ui.init(env)
 
-	case 2:
-		m, err := reader.ReadMachine(path)
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
+	// case 2:
+	// 	m, err := reader.ReadMachine(path)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		break
+	// 	}
 
-		fmt.Println("Nova maquina carregada com sucesso!")
-		env.machine = m
-		ui.init(env)
+	// 	fmt.Println("Nova maquina carregada com sucesso!")
+	// 	env.machine = m
+	// 	ui.init(env)
 
-	case 3:
-		inputs, err := reader.ReadInputs(path)
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
+	// case 3:
+	// 	inputs, err := reader.ReadInputs(path)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		break
+	// 	}
 
-		for _, input := range inputs {
-			go machine.Execute(env.machine, input)
-		}
+	// 	for _, input := range inputs {
+	// 		go machine.Execute(env.machine, input)
+	// 	}
 
-	default:
-	}
+	// default:
+	// }
 
-	ui.waitingFile = false
-	ui.indexMenu = 1
+	// ui.waitingFile = false
+	// ui.menuInfo.currentMenu.CurrentIndex = 1
 }
 
 func draw(env *environment) {
@@ -414,7 +471,12 @@ func drawUi(env *environment) error {
 	}
 
 	if ui.menuMode {
-		err = ui.drawSelectBox(env.w)
+		if ui.menuInfo.currentMenu == nil {
+			ui.menuInfo.currentType = "main"
+			ui.menuInfo.currentMenu = ui.menuInfo.menus["main"]
+		}
+
+		ui.drawMenu(env.w)
 		if err != nil {
 			return err
 		}
@@ -448,7 +510,7 @@ func (ui *uiComponents) update(env *environment) {
 	}
 
 	// Atualiza o buffer que printa a fita
-	ui.bufferInput = ajustBufferInput(env.input, ui.indexComputation)
+	ui.bufferInput = ajustBufferInput(env.machine.GetInput(), ui.indexComputation)
 
 	// Historico da computação atual
 	record := ui.bufferComputation.History[ui.indexComputation]
@@ -475,9 +537,9 @@ func (ui *uiComponents) init(env *environment) {
 		mousePos:      &sdl.Point{X: 0, Y: 0},
 	}
 
-	env.input.Reset()
-	bufferInput := ajustBufferInput(env.input, 0)
-	computation := machine.Execute(env.machine, env.input)
+	ui.closeMenus(env)
+	bufferInput := ajustBufferInput(env.machine.GetInput(), 0)
+	computation := machine.Execute(env.machine, env.machine.GetInput())
 
 	// TODO: REFATORAR
 	if env.machine.Type() == machine.TWO_STACK_MACHINE {
@@ -496,6 +558,7 @@ func (ui *uiComponents) init(env *environment) {
 	ui.indexComputation = 0
 	ui.bufferComputation = *computation
 	ui.bufferInput = bufferInput
+	env.machine.GetInput().Reset()
 
 	initial := ui.bufferComputation.History[0]
 	initalDetails := initial.Details()
@@ -506,7 +569,7 @@ func (ui *uiComponents) init(env *environment) {
 }
 
 func (ui *uiComponents) reset(env *environment) {
-	bufferInput := ajustBufferInput(env.input, 0)
+	bufferInput := ajustBufferInput(env.machine.GetInput(), 0)
 	ui.bufferInput = bufferInput
 	ui.indexComputation = 0
 	initial := ui.bufferComputation.History[0]
@@ -530,8 +593,9 @@ func drawNodes(env *environment) error {
 }
 
 func ajustBufferInput(input *collections.Fita, index int) []string {
-	// Se há apenas 1 caracter na fita
 	arrayInput := input.ToArray()
+
+	// Se há apenas 1 caracter na fita
 	if len(arrayInput)-index < 1 {
 		return []string{arrayInput[len(arrayInput)-1]}
 	}

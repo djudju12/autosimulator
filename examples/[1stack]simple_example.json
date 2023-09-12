@@ -13,6 +13,11 @@
       "a",
       "b"
    ],
+   "defaultInput": [
+      "a",
+      "a",
+      "b"
+   ],
    "transitions": {
       "q0": [
          "(a, &, b, q0)",
