@@ -19,7 +19,8 @@ import (
 const (
 	TITLE           = "Simulador de Autômato"
 	FONT_PATH       = "/home/jonathan/hd/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
-	EXAMPLES_PATH   = "/home/jonathan/hd/programacao/autosimulator/examples"
+	EXAMPLES_PATH   = "/home/jonathan/hd/programacao/autosimulator/machines"
+	INPUT_PATH      = "/home/jonathan/hd/programacao/autosimulator/inputs"
 	FONT_SIZE       = 24
 	FPS_DEFAULT     = 60
 	WITDH, HEIGHT   = 580, 750
@@ -58,7 +59,6 @@ type (
 
 	menu struct {
 		currentMenu *SelectBox
-		currentType string
 		menus       map[string]*SelectBox
 	}
 
@@ -82,15 +82,27 @@ type (
 
 var (
 	main = &SelectBox{
+		Name:         "main",
 		CurrentIndex: 1,
-		MaxItems:     3,
+		MaxItems:     4,
 		MaxLen:       13,
-		Options:      []string{"Maquinas", "Novo Input", "Rodar Tests"},
+		Options:      []string{"Machines", "New Input", "Save Input", "Load Input"},
 	}
 
 	menus = map[string]*SelectBox{
 		"main": main,
 		"explorer": {
+			Name:         "explorer",
+			CurrentIndex: 1,
+			MaxItems:     14,
+			MaxLen:       25,
+			Options:      nil,
+		},
+		"input": {
+			Name: "input",
+		},
+		"load_input": {
+			Name:         "load_input",
 			CurrentIndex: 1,
 			MaxItems:     14,
 			MaxLen:       25,
@@ -101,7 +113,6 @@ var (
 	ui *uiComponents = &uiComponents{
 		menuInfo: &menu{
 			currentMenu: menus["main"],
-			currentType: "main",
 			menus:       menus,
 		},
 		stackHist: &stackHist{
@@ -206,7 +217,10 @@ func pollEvent(env *environment) {
 			env.Quit()
 
 		case *sdl.KeyboardEvent:
-			handleKeyboardEvents(event, env)
+			err := handleKeyboardEvents(event, env)
+			if err != nil {
+				env.throw(err)
+			}
 
 		case *sdl.MouseButtonEvent:
 			handleMouseButtonEvents(event, env)
@@ -227,12 +241,14 @@ func pollEvent(env *environment) {
 	}
 }
 
-func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
+func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) error {
+	var err error
 	// Por simplicidade vou lidar apenas com teclas apertadas para baixo
 	if event.Type != sdl.KEYDOWN {
-		return
+		return err
 	}
 
+	// Handle digitação
 	if env.typing {
 		lastTyped := event.Keysym.Sym
 		if lastTyped == sdl.K_RETURN || lastTyped == sdl.K_ESCAPE {
@@ -246,10 +262,10 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 			}
 		}
 
-		return
+		return err
 	}
 
-	// Eventos dos menus
+	// Handle menus
 	if ui.menuMode {
 		menu := ui.menuInfo.currentMenu
 
@@ -261,7 +277,7 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 			menu.CurrentIndex++
 
 		case sdl.K_RETURN:
-			ui.changeMenu(env)
+			err = ui.changeMenu(env)
 
 		case sdl.K_m:
 			ui.closeMenus(env)
@@ -269,7 +285,7 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 		default:
 		}
 
-		return
+		return err
 	}
 
 	// Eventos fora do menu
@@ -292,28 +308,42 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) {
 
 	default:
 	}
+
+	return err
 }
 
 func (ui *uiComponents) closeMenus(env *environment) {
 	ui.menuInfo.currentMenu.CurrentIndex = 1
 	ui.menuInfo.currentMenu = ui.menuInfo.menus["main"]
-	ui.menuInfo.currentType = "main"
 	ui.menuInfo.currentMenu.CurrentIndex = 1
 	ui.menuMode = false
 	env.stopTyping()
 }
 
-func (ui *uiComponents) changeMenu(env *environment) {
-	switch ui.menuInfo.currentType {
+func (ui *uiComponents) changeMenu(env *environment) error {
+	var err error
+	switch ui.menuInfo.currentMenu.Name {
 	case "main":
 		menuSelected := ui.menuInfo.currentMenu.CurrentIndex
 		switch menuSelected {
-		case 1:
+		case 1: // MACHINES
 			ui.menuInfo.currentMenu = ui.menuInfo.menus["explorer"]
-			ui.menuInfo.currentType = "explorer"
-		case 2:
-			ui.menuInfo.currentType = "input"
+
+		case 2: // NEW INPUT
+			ui.menuInfo.currentMenu = ui.menuInfo.menus["input"]
 			env.startTyping()
+
+		case 3: // SAVE INPUT
+			err = env.saveInput()
+			if err != nil {
+				return err
+			}
+
+			ui.closeMenus(env)
+
+		case 4: // LOAD INPUT
+			ui.menuInfo.currentMenu = ui.menuInfo.menus["load_input"]
+
 		default:
 		}
 
@@ -321,20 +351,28 @@ func (ui *uiComponents) changeMenu(env *environment) {
 		selectedPath := ui.menuInfo.currentMenu.CurrentIndex
 		m, err := reader.ReadMachine(filepath.Join(EXAMPLES_PATH, ui.menuInfo.currentMenu.Options[selectedPath-1]))
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		ui.menuInfo.currentMenu.Options = nil
 		env.loadMachine(m)
 		ui.init(env)
 
-	case "input":
-		fmt.Println("[NotImplemented] changeMenu()")
-		env.stopTyping()
+	case "load_input":
+		selectedPath := ui.menuInfo.currentMenu.CurrentIndex
+		i, err := reader.ReadInput(filepath.Join(INPUT_PATH, ui.menuInfo.currentMenu.Options[selectedPath-1]))
+		if err != nil {
+			return err
+		}
+
+		ui.menuInfo.currentMenu.Options = nil
+		env.input = i
+		ui.init(env)
 
 	default:
 	}
+
+	return err
 }
 
 func handleMouseButtonEvents(event *sdl.MouseButtonEvent, env *environment) {
@@ -394,20 +432,17 @@ func draw(env *environment) {
 	ui.update(env)
 	err := window.cleanUp()
 	if err != nil {
-		fmt.Println(err)
-		env.Quit()
+		env.throw(err)
 	}
 
 	err = drawNodes(env)
 	if err != nil {
-		fmt.Println(err)
-		env.Quit()
+		env.throw(err)
 	}
 
 	err = drawUi(env)
 	if err != nil {
-		fmt.Println(err)
-		env.Quit()
+		env.throw(err)
 	}
 
 	window.renderer.Present()
@@ -450,7 +485,6 @@ func drawUi(env *environment) error {
 
 	if ui.menuMode {
 		if ui.menuInfo.currentMenu == nil {
-			ui.menuInfo.currentType = "main"
 			ui.menuInfo.currentMenu = ui.menuInfo.menus["main"]
 		}
 
@@ -515,8 +549,6 @@ func (ui *uiComponents) init(env *environment) {
 	}
 
 	ui.closeMenus(env)
-	// bufferInput := ajustBufferInput(env.machine.GetInput(), 0)
-	// computation := machine.Execute(env.machine, env.machine.GetInput())
 	bufferInput := ajustBufferInput(env.input, 0)
 	computation := machine.Execute(env.machine, env.input)
 
@@ -655,4 +687,13 @@ func (env *environment) startTyping() {
 func (env *environment) loadMachine(machine machine.Machine) {
 	env.machine = machine
 	env.input = machine.GetInput()
+}
+
+func (env *environment) saveInput() error {
+	return reader.WriteInput(env.input, INPUT_PATH)
+}
+
+func (env *environment) throw(err error) {
+	fmt.Println(err)
+	env.Quit()
 }

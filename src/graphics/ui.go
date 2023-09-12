@@ -12,6 +12,7 @@ import (
 
 type SelectBox struct {
 	*sdl.Rect
+	Name         string
 	CurrentIndex int32
 	MaxItems     int32
 	MaxLen       int
@@ -74,7 +75,7 @@ func (sb *SelectBox) draw(window *_SDLWindow) error {
 }
 
 func (ui *uiComponents) drawMenu(window *_SDLWindow) error {
-	menuType := ui.menuInfo.currentType
+	menuType := ui.menuInfo.currentMenu.Name
 	var err error
 	switch menuType {
 	case "main":
@@ -82,7 +83,9 @@ func (ui *uiComponents) drawMenu(window *_SDLWindow) error {
 	case "explorer":
 		err = drawExplorerMenu(window, ui.menuInfo.currentMenu)
 	case "input":
-		err = ui.drawInputField(window)
+		err = drawInputField(window)
+	case "load_input":
+		err = drawLoadInputMenu(window, ui.menuInfo.currentMenu)
 	default:
 	}
 
@@ -92,7 +95,33 @@ func (ui *uiComponents) drawMenu(window *_SDLWindow) error {
 func drawExplorerMenu(window *_SDLWindow, menuBox *SelectBox) error {
 	// TODO: guardar até fechar
 	if menuBox.Options == nil {
-		options := reader.GetJsonList(EXAMPLES_PATH)
+		options, err := reader.GetJsonList(EXAMPLES_PATH)
+		if err != nil {
+			return err
+		}
+
+		menuBox.Options = options
+	}
+
+	var widthBox int32 = DIMENSAO_ESTRUTURAS * 12
+	rect := sdl.Rect{
+		X: WITDH/2 - widthBox/2,
+		Y: HEIGHT * 0.1,
+		W: widthBox,
+		H: DIMENSAO_ESTRUTURAS,
+	}
+
+	menuBox.Rect = &rect
+	return menuBox.draw(window)
+}
+
+func drawLoadInputMenu(window *_SDLWindow, menuBox *SelectBox) error {
+	if menuBox.Options == nil {
+		options, err := reader.GetCsvList(INPUT_PATH)
+		if err != nil {
+			return err
+		}
+
 		menuBox.Options = options
 	}
 
@@ -121,7 +150,7 @@ func drawMainMenu(window *_SDLWindow, menuBox *SelectBox) error {
 	return menuBox.draw(window)
 }
 
-func (ui *uiComponents) drawInputField(window *_SDLWindow) error {
+func drawInputField(window *_SDLWindow) error {
 	// Calculo da posicao inicial da fita/texto
 	var fitaCellWidth int32 = DIMENSAO_ESTRUTURAS
 	var y int32 = window.HEIGHT/2 - fitaCellWidth/2

@@ -9,11 +9,13 @@ import (
 	"autosimulator/src/utils"
 	"encoding/csv"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
 func ReadMachine(path string) (machine.Machine, error) {
@@ -76,6 +78,7 @@ func ReadInputs(path string) ([]*collections.Fita, error) {
 	return result, nil
 
 }
+
 func ReadInput(path string) (*collections.Fita, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -90,7 +93,7 @@ func ReadInput(path string) (*collections.Fita, error) {
 	}
 
 	if len(input) > 1 {
-		return nil, errors.New("foram encontrados divers")
+		return nil, fmt.Errorf("o input deve possuir apenas uma linha e seus elementos devem estar separados por vírgula e sem espaço entre eles. Input:", input)
 	}
 
 	fmt.Println(input)
@@ -191,10 +194,35 @@ func checkStates(machine machine.Machine) error {
 	return nil
 }
 
-func GetJsonList(path string) []string {
+func readDir(path string) ([]fs.DirEntry, error) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		panic(err)
+		return nil, err
+	}
+
+	return entries, nil
+}
+
+func GetCsvList(path string) ([]string, error) {
+	entries, err := readDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []string
+	for _, entry := range entries {
+		if !entry.IsDir() && isCsvExt(entry.Name()) {
+			result = append(result, entry.Name())
+		}
+	}
+
+	return result, nil
+}
+
+func GetJsonList(path string) ([]string, error) {
+	entries, err := readDir(path)
+	if err != nil {
+		return nil, err
 	}
 
 	var result []string
@@ -204,9 +232,41 @@ func GetJsonList(path string) []string {
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 func isJsonExt(fileName string) bool {
 	return strings.ToLower(fileName[len(fileName)-5:]) == ".json"
+}
+
+func isCsvExt(fileName string) bool {
+	return strings.ToLower(fileName[len(fileName)-4:]) == ".csv"
+}
+
+func WriteInput(input *collections.Fita, path string) error {
+	f, err := os.Create(filepath.Join(path, time.Now().String()+".csv"))
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	arr := input.ToArray()
+	_, err = f.Write([]byte(arr[0]))
+	if err != nil {
+		return err
+	}
+
+	for _, word := range arr[1:] {
+		if word == collections.TAIL_FITA {
+			break
+		}
+
+		_, err = f.Write([]byte("," + word))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	m, _ := reader.ReadMachine("examples/[dfa]simple_example.json")
+	m, _ := reader.ReadMachine("machines/[dfa]simple_example.json")
 	window := graphics.NewSDLWindow()
 	environment := graphics.PopulateEnvironment(window, m)
 	graphics.Mainloop(environment)
