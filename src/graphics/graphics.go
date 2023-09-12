@@ -17,14 +17,13 @@ import (
 )
 
 const (
-	TITLE           = "Simulador de Autômato"
-	FONT_PATH       = "/home/jonathan/hd/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
-	EXAMPLES_PATH   = "/home/jonathan/hd/programacao/autosimulator/machines"
-	INPUT_PATH      = "/home/jonathan/hd/programacao/autosimulator/inputs"
-	FONT_SIZE       = 24
-	FPS_DEFAULT     = 60
-	WITDH, HEIGHT   = 580, 750
-	DELAY_ANIMATION = 0.5 * 1000
+	TITLE         = "Simulador de Autômato"
+	FONT_PATH     = "/home/jonathan/hd/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
+	EXAMPLES_PATH = "/home/jonathan/hd/programacao/autosimulator/machines"
+	INPUT_PATH    = "/home/jonathan/hd/programacao/autosimulator/inputs"
+	FONT_SIZE     = 24
+	FPS_DEFAULT   = 60
+	WITDH, HEIGHT = 580, 750
 )
 
 type (
@@ -121,7 +120,8 @@ var (
 		},
 	}
 
-	fpsTimer uint64
+	fpsTimer       uint64
+	delayAnimation = 0.5
 
 	BLACK = sdl.Color{R: 0, G: 0, B: 0, A: 255}
 	WHITE = sdl.Color{R: 255, G: 255, B: 255, A: 255}
@@ -305,6 +305,12 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) error {
 
 	case sdl.K_m:
 		ui.menuMode = !ui.menuMode
+
+	case sdl.K_EQUALS:
+		delayAnimation += 0.1
+
+	case sdl.K_MINUS:
+		delayAnimation -= 0.1
 
 	default:
 	}
@@ -505,11 +511,11 @@ func drawUi(env *environment) error {
 }
 
 func (ui *uiComponents) update(env *environment) {
-	// se estiver rodando, atualiza a cada DELAY_ANIMATION
-	// Ou seja, anima a cada DELAY_ANIMATION milisegundos
+	// se estiver rodando, atualiza a cada delayAnimation
+	// Ou seja, anima a cada delayAnimation milisegundos
 	if env.running {
 		now := sdl.GetTicks64()
-		if now > uint64(fpsTimer+DELAY_ANIMATION) {
+		if now > fpsTimer+uint64(delayAnimation*1000) {
 			ui.nextComputation()
 			env.running = ui.indexComputation != (len(ui.bufferComputation.History) - 1)
 			fpsTimer = now
