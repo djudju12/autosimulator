@@ -127,6 +127,7 @@ var (
 	WHITE = sdl.Color{R: 255, G: 255, B: 255, A: 255}
 	BLUE  = sdl.Color{R: 0, G: 0, B: 255, A: 255}
 	RED   = sdl.Color{R: 255, G: 0, B: 0, A: 255}
+	PINK  = sdl.Color{R: 255, G: 80, B: 80, A: 255}
 	GREEN = sdl.Color{R: 0, G: 255, B: 0, A: 255}
 
 	COLOR_DEFAULT   = sdl.Color{R: 235, G: 174, B: 52, A: 255}

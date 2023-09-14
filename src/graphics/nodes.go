@@ -1,6 +1,7 @@
 package graphics
 
 import (
+	"autosimulator/src/machine"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -192,37 +193,59 @@ func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState,
 	radius := float64(from.H / 2)
 	radiusMiniBall := thickness * 2
 
-	// Calcula o ponto inicial e final da linha
-	start, end, ok := LinePoints(fromCenter, toCenter, radius, radius+float64(radiusMiniBall))
-	if !ok {
-		return nil
-	}
-
-	if start.X < 0 {
-		fmt.Println(fromCenter, toCenter, radius, radius+float64(radiusMiniBall))
-		fmt.Println(start, end)
-	}
-
-	// Historico da computação atual
 	record := ui.bufferComputation.History[ui.indexComputation]
 	details := record.Details()
 	previus := ui.states[details["LAST_STATE"]]
 
 	color := COLOR_DEFAULT
-	if previus == from {
+	if previus == from && machine.INITIAL != details["RESULT"] {
 		color = to.Color
 	}
 
-	// Desenha a linha
-	ok = gfx.ThickLineColor(renderer, start.X, start.Y, end.X, end.Y, thickness, color)
-	if !ok {
-		return errors.New("erro ao renderizar as linhas")
-	}
+	if from == to {
+		var start int32 = 250
+		var end int32 = 100
+		gfx.ArcRGBA(renderer,
+			fromCenter.X+int32(radius),
+			fromCenter.Y,
+			int32(radius*0.7),
+			start,
+			end,
+			color.R,
+			color.G,
+			color.B,
+			color.A,
+		)
 
-	// Desenha o marcador de cardinalidade no final da linha
-	ok = gfx.FilledCircleColor(renderer, end.X, end.Y, radiusMiniBall, color)
-	if !ok {
-		return errors.New("erro ao renderizar as linhas")
+		//Desenha o marcador de cardinalidade no final da linha
+		ok := gfx.FilledCircleColor(renderer, fromCenter.X+int32(radius), fromCenter.Y+int32(radius*0.7), radiusMiniBall, color)
+		if !ok {
+			return errors.New("erro ao renderizar as linhas")
+		}
+
+	} else {
+		// Calcula o ponto inicial e final da linha
+		start, end, ok := LinePoints(fromCenter, toCenter, radius, radius+float64(radiusMiniBall))
+		if !ok {
+			return nil
+		}
+
+		if start.X < 0 {
+			fmt.Println(fromCenter, toCenter, radius, radius+float64(radiusMiniBall))
+			fmt.Println(start, end)
+		}
+
+		// Desenha a linha
+		ok = gfx.ThickLineColor(renderer, start.X, start.Y, end.X, end.Y, thickness, color)
+		if !ok {
+			return errors.New("erro ao renderizar as linhas")
+		}
+
+		// Desenha o marcador de cardinalidade no final da linha
+		ok = gfx.FilledCircleColor(renderer, end.X, end.Y, radiusMiniBall, color)
+		if !ok {
+			return errors.New("erro ao renderizar as linhas")
+		}
 	}
 
 	return nil
