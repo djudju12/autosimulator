@@ -18,9 +18,9 @@ import (
 
 const (
 	TITLE         = "Simulador de Autômato"
-	FONT_PATH     = "/home/jonathan/hd/programacao/autosimulator/src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
-	EXAMPLES_PATH = "/home/jonathan/hd/programacao/autosimulator/machines"
-	INPUT_PATH    = "/home/jonathan/hd/programacao/autosimulator/inputs"
+	FONT_PATH     = "src/graphics/assets/IBMPlexMono-ExtraLight.ttf"
+	EXAMPLES_PATH = "machines"
+	INPUT_PATH    = "inputs"
 	FONT_SIZE     = 24
 	FPS_DEFAULT   = 60
 	WITDH, HEIGHT = 580, 750
