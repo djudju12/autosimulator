@@ -98,6 +98,10 @@ func (f *Fita) Peek(amount int) []string {
 	return result
 }
 
+func (f *Fita) PeekAll() []string {
+	return f.Peek(f.Length())
+}
+
 func (f *Fita) ToArray() []string {
 	var result []string
 	var value interface{}

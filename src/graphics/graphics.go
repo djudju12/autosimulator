@@ -250,19 +250,23 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) error {
 
 	// Handle digitação
 	if env.typing {
-		lastTyped := event.Keysym.Sym
-		if lastTyped == sdl.K_RETURN || lastTyped == sdl.K_ESCAPE {
+		switch event.Keysym.Sym {
+		case sdl.K_RETURN:
 			env.input = collections.FitaFromArray(typedInput)
 			ui.init(env)
-		}
 
-		if lastTyped == sdl.K_BACKSPACE {
+		case sdl.K_BACKSPACE:
 			if len(typedInput) > 0 {
 				typedInput = typedInput[:len(typedInput)-1]
 			}
-		}
 
-		return err
+		case sdl.K_ESCAPE:
+			previusInput := env.input.PeekAll()
+			typedInput = previusInput[:len(previusInput)-1]
+			ui.closeMenus(env)
+
+		default:
+		}
 	}
 
 	// Handle menus

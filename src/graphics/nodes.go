@@ -74,9 +74,9 @@ func (s *graphicalState) drawRing(renderer *sdl.Renderer, r1, r2 int32, color sd
 	var i int32
 	center := Center(s.Rect)
 	for i = 0; i < r1-r2; i++ {
-		// gfx.AACircleColor(renderer, center.X, center.Y, (r1 - i), color)
 		drawCircle(renderer, center.X, center.Y, (r1 - i), color)
 	}
+
 	return nil
 }
 
@@ -202,14 +202,25 @@ func (from *graphicalState) drawLine(renderer *sdl.Renderer, to *graphicalState,
 		fmt.Println(fromCenter, toCenter, radius, radius+float64(radiusMiniBall))
 		fmt.Println(start, end)
 	}
+
+	// Historico da computação atual
+	record := ui.bufferComputation.History[ui.indexComputation]
+	details := record.Details()
+	previus := ui.states[details["LAST_STATE"]]
+
+	color := COLOR_DEFAULT
+	if previus == from {
+		color = to.Color
+	}
+
 	// Desenha a linha
-	ok = gfx.ThickLineColor(renderer, start.X, start.Y, end.X, end.Y, thickness, COLOR_DEFAULT)
+	ok = gfx.ThickLineColor(renderer, start.X, start.Y, end.X, end.Y, thickness, color)
 	if !ok {
 		return errors.New("erro ao renderizar as linhas")
 	}
 
 	// Desenha o marcador de cardinalidade no final da linha
-	ok = gfx.FilledCircleColor(renderer, end.X, end.Y, radiusMiniBall, COLOR_DEFAULT)
+	ok = gfx.FilledCircleColor(renderer, end.X, end.Y, radiusMiniBall, color)
 	if !ok {
 		return errors.New("erro ao renderizar as linhas")
 	}
