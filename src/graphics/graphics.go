@@ -138,7 +138,7 @@ var (
 
 func Mainloop(env *environment) {
 	runtime.LockOSThread() // sdl2 precisa rodar na main thread.
-	ui.init(env)
+	ui.init(env, true)
 	for !env.terminate {
 		pollEvent(env)
 		draw(env)
@@ -254,7 +254,7 @@ func handleKeyboardEvents(event *sdl.KeyboardEvent, env *environment) error {
 		switch event.Keysym.Sym {
 		case sdl.K_RETURN:
 			env.input = collections.FitaFromArray(typedInput)
-			ui.init(env)
+			ui.init(env, false)
 
 		case sdl.K_BACKSPACE:
 			if len(typedInput) > 0 {
@@ -367,7 +367,7 @@ func (ui *uiComponents) changeMenu(env *environment) error {
 
 		ui.menuInfo.currentMenu.Options = nil
 		env.loadMachine(m)
-		ui.init(env)
+		ui.init(env, true)
 
 	case "load_input":
 		selectedPath := ui.menuInfo.currentMenu.CurrentIndex
@@ -378,7 +378,7 @@ func (ui *uiComponents) changeMenu(env *environment) error {
 
 		ui.menuInfo.currentMenu.Options = nil
 		env.input = i
-		ui.init(env)
+		ui.init(env, false)
 
 	default:
 	}
@@ -551,7 +551,7 @@ func (ui *uiComponents) update(env *environment) {
 	}
 }
 
-func (ui *uiComponents) init(env *environment) {
+func (ui *uiComponents) init(env *environment, redraw bool) {
 	dragInfo := &drag{
 		clickOffset:   &sdl.Point{X: 0, Y: 0},
 		selected:      nil,
@@ -563,7 +563,6 @@ func (ui *uiComponents) init(env *environment) {
 	bufferInput := ajustBufferInput(env.input, 0)
 	computation := machine.Execute(env.machine, env.input)
 
-	// TODO: REFATORAR
 	if env.machine.Type() == machine.TWO_STACK_MACHINE {
 		machine, _ := env.machine.(*twoStackMachine.Machine)
 		ui.stackA, ui.stackB = machine.StackHistory()
@@ -575,8 +574,11 @@ func (ui *uiComponents) init(env *environment) {
 		}
 	}
 
-	ui.states = machineStates(env)
-	ui.dragInfo = dragInfo
+	if redraw {
+		ui.states = machineStates(env)
+		ui.dragInfo = dragInfo
+	}
+
 	ui.indexComputation = 0
 	ui.bufferComputation = *computation
 	ui.bufferInput = bufferInput
