@@ -90,7 +90,6 @@ func Execute(m Machine, fita *collections.Fita) *Computation {
 
 	// Printa o histórico da computação
 	fmt.Printf("Fita: %s\nResultado:\n%s\n", fita.Stringfy(), comp.Stringfy())
-	// fmt.Printf("%+v\n%+v", m.Stacks()[0].Stringfy(), m.Stacks()[1].Stringfy())
 	return comp
 }
 
